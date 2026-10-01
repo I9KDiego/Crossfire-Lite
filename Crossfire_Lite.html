@@ -116,7 +116,7 @@ function hwallDCol(ax,f,a,b,ops){let p=a;
 function box(x,z,w,d,h,k){k=k||(h>3?'wall':'wood');const t=TX[k][0].clone();t.needsUpdate=true;t.repeat.set(Math.max(w,d)/4,h/4);
  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:t}));m.position.set(x,h/2,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
  solids.push(m);shootables.push(m);boxes.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,h,col:TX[k][1]})}
-[[0,-30.5,62,1,6],[0,30.5,62,1,6],[-30.5,0,1,62,6],[30.5,0,1,62,6],
+[[0,-29.4,64,3,6],[0,29.4,64,3,6],[-29.4,0,3,64,6],[29.4,0,3,64,6],
  [-10,-8,5,1.5,4],[10,8,5,1.5,4],[-18,10,2,2,1.1],[-8.4,12.6,2,2,2.2],[18,-12,2.5,2.5,1.1],
  [-22,-18,10,1.5,3.5],[22,18,10,1.5,3.5],[-5,18,1.5,10,3.5],[5,-18,1.5,10,3.5],[13,-2,1.5,6,3],[-13,2,1.5,6,3],
  [-24,6,3,3,1.1],[24,-6,3,3,1.1],[0,-10,2,2,1.2],[0,10,2,2,1.2]].forEach(a=>box(...a));
@@ -125,7 +125,10 @@ function box(x,z,w,d,h,k){k=k||(h>3?'wall':'wood');const t=TX[k][0].clone();t.ne
  [19.5,2,6,5,1.8],[-19.5,-2,6,5,1.8]].forEach(a=>box(...a));
 for(let i=0;i<5;i++){box(22.95+.9*i,2,.9,2,1.5-.3*i);box(-22.95-.9*i,-2,.9,2,1.5-.3*i)}
 const bGeo=new THREE.CylinderGeometry(.42,.42,1.1,12),bMat=new THREE.MeshLambertMaterial({color:0xb03a2e});
-function barrel(x,z){const m=new THREE.Mesh(bGeo,bMat);m.position.set(x,.55,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);solids.push(m);shootables.push(m);boxes.push({x0:x-.45,x1:x+.45,z0:z-.45,z1:z+.45,h:1.1,col:'#b03a2e'})}
+const barrels=[];
+function barrel(x,z){const m=new THREE.Mesh(bGeo,bMat);m.position.set(x,.55,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);solids.push(m);shootables.push(m);
+ const bo={x0:x-.45,x1:x+.45,z0:z-.45,z1:z+.45,h:1.1,col:'#b03a2e'};boxes.push(bo);
+ const br={m,x,z,box:bo,dead:false,fuse:-1,stump:null};m.userData.barrel=br;barrels.push(br)}
 [[-27,-8.4],[-27,-6],[27,8.4],[27,6],[10,-24],[-10,24],[14,14],[-14,-14]].forEach(a=>barrel(...a));
 function decal(x,z,ch,col){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.globalAlpha=.3;g.fillStyle=col;g.fillRect(0,0,128,128);g.globalAlpha=1;g.strokeStyle=col;g.lineWidth=6;g.strokeRect(6,6,116,116);g.fillStyle=col;g.font='bold 80px sans-serif';g.textAlign='center';g.fillText(ch,64,92);
  const m=new THREE.Mesh(new THREE.PlaneGeometry(9,9),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true}));m.rotation.x=-Math.PI/2;m.position.set(x,.03,z);scene.add(m)}
@@ -224,6 +227,33 @@ grassBlades.receiveShadow=false;grassBlades.castShadow=false;
 scene.add(grassBlades);
 texFloor.repeat.set(20,20);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(62,62),new THREE.MeshLambertMaterial({map:texFloor}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);shootables.push(floor);
+// ---- Floresta densa nas bordas (as paredes de colisão ficam invisíveis atrás das árvores) ----
+solids.slice(0,4).forEach(m=>m.visible=false);
+{const gm=c=>new THREE.MeshLambertMaterial({color:c});
+const gT=r=>{const x=gt.clone();x.needsUpdate=true;x.repeat.set(r,r);return new THREE.MeshLambertMaterial({map:x})};
+ const og=new THREE.Mesh(new THREE.PlaneGeometry(260,260),gT(70));og.rotation.x=-Math.PI/2;og.position.y=-.03;scene.add(og);
+ const sq=h=>{const s=new THREE.Shape();s.moveTo(-h,-h);s.lineTo(h,-h);s.lineTo(h,h);s.lineTo(-h,h);return s};
+ const rs=sq(60);const hl=new THREE.Path();hl.moveTo(-27.8,-27.8);hl.lineTo(-27.8,27.8);hl.lineTo(27.8,27.8);hl.lineTo(27.8,-27.8);rs.holes.push(hl);
+ const ring=new THREE.Mesh(new THREE.ShapeGeometry(rs),gT(.268));ring.rotation.x=-Math.PI/2;ring.position.y=.008;scene.add(ring);
+ // escuridão: o chão escurece até ficar preto e uma parede preta fecha o fundo
+ og.material=new THREE.MeshBasicMaterial({color:0x000000,fog:false});
+ [[30,34,.3],[34,38,.55],[38,42,.78],[42,46,.92],[46,70,1]].forEach(([i,o,op])=>{const s=sq(o);const h=new THREE.Path();h.moveTo(-i,-i);h.lineTo(-i,i);h.lineTo(i,i);h.lineTo(i,-i);s.holes.push(h);
+  const m=new THREE.Mesh(new THREE.ShapeGeometry(s),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:op,depthWrite:false,fog:false}));m.rotation.x=-Math.PI/2;m.position.y=.02;m.renderOrder=1;scene.add(m)});
+ const bk=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide,fog:false});
+ [[0,-57,0],[0,57,0],[-57,0,1],[57,0,1]].forEach(([x,z,r])=>{const w=new THREE.Mesh(new THREE.PlaneGeometry(130,60),bk);w.position.set(x,28,z);if(r)w.rotation.y=Math.PI/2;scene.add(w)});
+ const pos=[];
+ for(let side=0;side<4;side++)for(const off of [28.4,30.2,32.2])for(let u=-34;u<=34;u+=2.3){const a=u+(Math.random()-.5)*1.4,b=off+(Math.random()-.5)*1.2;pos.push(side<2?[a,side?b:-b]:[side==2?b:-b,a])}
+ const rnd=(n,L)=>{let k=0;while(k<n){const x=(Math.random()*2-1)*L,z=(Math.random()*2-1)*L;if(Math.max(Math.abs(x),Math.abs(z))>=28.4){pos.push([x,z]);k++}}};
+ rnd(380,40);rnd(160,54);
+ const N=pos.length,tg=new THREE.CylinderGeometry(.18,.32,3.2,6);tg.translate(0,1.6,0);
+ const cg=(r,h,y)=>{const g=new THREE.ConeGeometry(r,h,8);g.translate(0,y+h/2,0);return g};
+ const parts=[[tg,0x5a3a1c],[cg(1.9,2.8,2.2),0x2f6e2c],[cg(1.5,2.4,3.9),0x388a34],[cg(1.0,2.2,5.4),0x43a03c]];
+ const dm=new THREE.Object3D(),col=new THREE.Color();
+ parts.forEach(([geo,c],pi)=>{const im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:0xffffff,fog:false}),N);
+  pos.forEach((q,i)=>{const sc=1.1+((Math.sin(q[0]*12.9+q[1]*78.2)*43758.5)%1+1)%1*1.3;dm.position.set(q[0],0,q[1]);dm.scale.set(sc,sc*(.9+((q[0]*7.3+q[1]*3.1)%.4+.4)%.4),sc);dm.rotation.set(0,i*1.7,0);dm.updateMatrix();im.setMatrixAt(i,dm.matrix);
+   col.setHex(c);if(pi)col.multiplyScalar(.8+((q[0]*5.7+q[1]*2.3)%.4+.4)%.4);col.multiplyScalar(Math.pow(Math.max(0,1-(Math.max(Math.abs(q[0]),Math.abs(q[1]))-29)/14),1.4));im.setColorAt(i,col)});
+  im.frustumCulled=false;scene.add(im)});
+}
 const SP=[[-25,-25],[25,-25],[0,-26],[-26,0],[26,4],[-25,25],[26,26],[0,-24]];
 function hitsBox(x,z,y,r){for(const b of boxes){if(b.h<=y+.35)continue;if(x>b.x0-r&&x<b.x1+r&&z>b.z0-r&&z<b.z1+r)return true}
  for(const pl of platforms){if(pl.ceilOnly)continue;if(pl.bot!=null){if(pl.y<=y+.35||y+1.8<=pl.bot)continue}else{if(y<pl.y-.6)continue;if(pl.y<=y+.35)continue}if(x>pl.x0-r&&x<pl.x1+r&&z>pl.z0-r&&z<pl.z1+r)return true}
@@ -297,15 +327,106 @@ vm('heavy',[[.09,.11,.75,0x2b2b1f,0,0,0],[.1,.02,.5,0x3a3a34,0,.06,-.05],[.035,.
  [.08,.13,.26,0x4a3a1a,0,-.03,.42],[.06,.2,.09,0x5b3a1e,0,-.14,-.06],
  [.08,.07,.12,0xd9a37a,0,-.1,.13],[.11,.02,.05,0x1a1a1a,0,.07,.33],[.02,.13,.02,0x111111,0,.02,-.68]],0,
  g=>{gpart(.13,.09,.16,0x22261e,0,-.18,.02,g);gcyl(.01,.01,.28,0x1a1a1a,-.2,-.16,.32,0,Math.PI/2,g);gcyl(.01,.01,.28,0x1a1a1a,.2,-.16,.32,0,Math.PI/2,g)});
-vm('glock',[[.05,.07,.22,0x222222,0,0,0],[.052,.012,.19,0x3a3a3a,0,.035,0],[.006,.02,.1,0x111111,0,.038,.02],[.006,.02,.1,0x111111,0,.038,.06],
- [.045,.11,.06,0x1a1a1a,0,-.08,.06],[.035,.09,.045,0xd9a37a,0,-.08,.085],[.018,.03,.05,0x111111,0,-.03,.04],
- [.06,.08,.08,0xd9a37a,0,-.1,.1],[.015,.02,.02,0x111111,0,.045,-.1],[.02,.025,.02,0x111111,0,.048,.08]],.25);
-vm('deagle',[[.06,.09,.32,0x9a9a9a,0,0,0],[.062,.014,.28,0xc4c4c4,0,.045,-.03],[.008,.022,.14,0x2a2a2a,0,.05,.02],
- [.05,.12,.07,0x1a1a1a,0,-.09,.09],[.035,.1,.05,0x2f2f2f,0,-.09,.12],[.05,.06,.06,0x666666,0,-.16,.11],
- [.07,.08,.08,0xd9a37a,0,-.1,.12],[.018,.025,.03,0x222222,0,.055,-.14],[.024,.03,.024,0x222222,0,.06,.1]],.22);
+vm('glock',[],.25,g=>{
+ // Glock 17 Gen5 FDE (referência: foto) — ferrolho preto com serrilhas, armação/empunhadura marrom-areia pontilhada, gatilho, botão do pente e miras
+ const s=.00033,Z=px=>(px-372)*s,Y=py=>(203-py)*s,V=(px,py)=>new THREE.Vector2(Z(px),Y(py));
+ const cv=document.createElement('canvas');cv.width=cv.height=32;const c=cv.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,32,32);c.fillStyle='#7a7a7a';c.beginPath();c.arc(16,16,7,0,7);c.fill();
+ const tx=new THREE.CanvasTexture(cv);tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.repeat.set(220,220);
+ const lam=(col,map)=>new THREE.MeshLambertMaterial({color:col,map:map||null,depthTest:true,depthWrite:true,transparent:true});
+ const SLm=lam(0x17181b),RIB=lam(0x30323a),FR=lam(0xb59468),FR2=lam(0x9c7d52),DKm=lam(0x0a0a0b),WH=lam(0xe8e8e8),STP=lam(0xb59468,tx);
+ let first=null;
+ const add=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);m.renderOrder=gpOrder();if(!first){first=m;m.onBeforeRender=r=>r.clearDepth()}g.add(m);return m};
+ const ex=(pts,depth,bev,mat,holes)=>{const sh=new THREE.Shape(pts.map(p=>V(p[0],p[1])));if(holes)holes.forEach(h=>sh.holes.push(new THREE.Path(h.map(p=>V(p[0],p[1])))));
+  const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:bev>0,bevelThickness:bev,bevelSize:bev*.9,bevelSegments:2,curveSegments:6});
+  geo.translate(0,0,-depth/2);geo.rotateY(-Math.PI/2);geo.computeVertexNormals();return add(geo,mat)};
+ const box=(w,h,d,mat,x,y,z)=>add(new THREE.BoxGeometry(w,h,d),mat,x,y,z);
+ // ferrolho preto (primeiro mesh: limpa o depth)
+ ex([[40,170],[48,162],[652,162],[698,165],[706,180],[706,243],[48,243],[40,236]],.040,.0015,SLm);
+ // serrilhas frontais e traseiras
+ [88,548].forEach(x0=>{for(let k=0;k<8;k++)box(.0445,.0224,.0016,RIB,0,Y(206),Z(x0+k*14.5))});
+ // miras: massa com ponto branco e alça traseira com entalhe
+ box(.006,.009,.006,SLm,0,Y(162)+.0035,Z(75));box(.003,.0015,.0035,WH,0,Y(162)+.0083,Z(75));
+ [-1,1].forEach(sg=>box(.0065,.0085,.0095,DKm,sg*.0068,Y(162)+.0033,Z(662)));
+ // gravação no lado esquerdo do ferrolho
+ const ec=document.createElement('canvas');ec.width=512;ec.height=64;const e=ec.getContext('2d');e.fillStyle='rgba(205,205,205,.75)';e.font='bold 30px Arial, sans-serif';e.textAlign='center';e.textBaseline='middle';e.fillText('GLOCK   17 Gen5   AUSTRIA   9x19',256,32);
+ const pl=new THREE.Mesh(new THREE.PlaneGeometry(.094,.0118),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(ec),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+ pl.rotation.y=-Math.PI/2;pl.position.set(-.0222,Y(207),Z(378));pl.renderOrder=gpOrder();g.add(pl);
+ // armação marrom-areia com guarda-mato vazado
+ ex([[48,241],[704,241],[708,262],[704,300],[728,400],[748,500],[754,580],[748,606],[724,630],[560,630],[550,600],[520,500],[494,420],[480,400],[470,402],[285,402],[283,297],[48,297]],.034,.0015,FR,
+  [[[312,314],[436,314],[452,336],[440,360],[424,386],[312,386]]]);
+ // área pontilhada da empunhadura
+ ex([[540,372],[638,366],[738,552],[724,572],[655,572],[572,550]],.0348,.0015,STP);
+ // gatilho, botão do pente, trava do ferrolho, base do carregador
+ ex([[348,376],[372,340],[400,312],[432,312],[446,325],[438,340],[420,336],[398,352],[375,378]],.008,.001,DKm);
+ const mr=box(.008,.0145,.0155,DKm,-.0215,Y(367),Z(505));mr.rotation.x=.35;
+ box(.007,.004,.016,DKm,-.0205,Y(262),Z(350));
+ ex([[558,628],[726,628],[724,655],[562,655]],.040,.0015,FR2);
+ // mão (por cima da parte de trás da empunhadura)
+ gpart(.056,.07,.055,0xd9a37a,0,-.1,.105,g);
+});
+// ---- Desert Eagle .50AE (referência: foto) — perfil extrudado em aço escovado, trilhos Picatinny, miras, martelo, empunhadura de borracha; ferrolho recua no tiro ----
+vm('deagle',[],.22,g=>{
+ const s=.00068,Z=px=>(px-244)*s,Y=py=>(135-py)*s,V=(px,py)=>new THREE.Vector2(Z(px),Y(py));   // px da foto → unidades do jogo (frente = -z)
+ const hsv=(v,t)=>t.map(k=>Math.min(1,v*k));
+ const sst=(a,b,x)=>{x=Math.min(1,Math.max(0,(x-a)/(b-a)));return x*x*(3-2*x)};
+ const gmc=(tint,gain,gloss,dark,brush)=>{const S=256,cv=document.createElement('canvas');cv.width=cv.height=S;const c2=cv.getContext('2d'),im=c2.createImageData(S,S),d=im.data;
+  for(let j=0;j<S;j++){const ln=brush?.94+.1*Math.abs(Math.sin(j*12.9898)*43758.5453%1):1;
+   for(let i=0;i<S;i++){const nx=(i+.5)/S*2-1,ny=1-(j+.5)/S*2,r2=nx*nx+ny*ny,cl=Math.min(r2,.9999),nz=Math.sqrt(1-cl),k=Math.sqrt(cl/Math.max(r2,1e-6));
+    const ax=nx*k,ay=ny*k,rx=2*nz*ax,ry=2*nz*ay,rz=2*nz*nz-1,el=ry,az=Math.atan2(rx,rz)/Math.PI;
+    let v=el>0?.58+.42*Math.sqrt(el):.14+.32*(1+el);
+    const hz=Math.exp(-Math.pow((el+.04)/.1,2))*dark;v=v*(1-hz)+.03*hz;
+    const b1=sst(.2,.28,el)*(1-sst(.6,.68,el))*sst(-.86,-.78,az)*(1-sst(-.36,-.28,az)),b2=sst(-.44,-.37,el)*(1-sst(-.1,-.03,el))*sst(.28,.35,az)*(1-sst(.78,.86,az));
+    v=(v+(1-v)*Math.min(1,b1*.95+b2*.7)*gloss+Math.pow(1-nz,3)*.22*gloss)*gain*ln;
+    const o=(j*S+i)*4;d[o]=Math.min(255,v*tint[0]*255);d[o+1]=Math.min(255,v*tint[1]*255);d[o+2]=Math.min(255,v*tint[2]*255);d[o+3]=255}}
+  c2.putImageData(im,0,0);return new THREE.CanvasTexture(cv)};
+ // depthTest ligado (peças se ordenam em 3D); o primeiro mesh limpa o depth para a arma nunca atravessar paredes
+ const mk=t=>new THREE.MeshMatcapMaterial({matcap:t,depthTest:true,depthWrite:true,transparent:true,side:THREE.DoubleSide});
+ const ST=mk(gmc([.93,.96,1],1,1,.9,1)),RB=mk(gmc([.9,.9,.95],.2,.35,.35,0)),BK=mk(gmc([1,1,1],.12,.75,.5,0));
+ const DK=new THREE.MeshBasicMaterial({color:0x0b0c0e,transparent:true});
+ let first=null;
+ const add=(geo,mat,x,y,z,grp)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);m.renderOrder=gpOrder();if(!first){first=m;m.onBeforeRender=r=>r.clearDepth()}(grp||g).add(m);return m};
+ const ex=(pts,depth,bev,mat,grp,holes)=>{const sh=new THREE.Shape(pts.map(p=>V(p[0],p[1])));if(holes)holes.forEach(h=>sh.holes.push(new THREE.Path(h.map(p=>V(p[0],p[1])))));
+  const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:bev>0,bevelThickness:bev,bevelSize:bev*.9,bevelSegments:3,curveSegments:8});
+  geo.translate(0,0,-depth/2);geo.rotateY(-Math.PI/2);geo.computeVertexNormals();return add(geo,mat,0,0,0,grp)};
+ const box=(w,h,d,mat,x,y,z,grp)=>add(new THREE.BoxGeometry(w,h,d),mat,x,y,z,grp);
+ const cyl=(r,len,mat,x,y,z,grp)=>{const m=add(new THREE.CylinderGeometry(r,r,len,18),mat,x,y,z,grp);m.rotation.z=Math.PI/2;return m};
+ const SL=new THREE.Group();g.add(SL);SL.userData.z0=0;g.userData.slide=SL;   // parte móvel (ferrolho)
+ // cano fixo + abafador/freio de boca com 3 fendas
+ ex([[12,108],[225,108],[225,175],[12,175]],.026,.003,ST);
+ [22,32,42].forEach(px=>{box(.0275,.0012,.0042,DK,0,Y(108)+.0007,Z(px));[-1,1].forEach(sg=>box(.0008,.02,.0042,DK,sg*.0166,Y(113),Z(px)))});
+ // trilho superior (cano) e inferior (armação), com fendas
+ box(.02,.0055,(215-40)*s,ST,0,Y(104),Z(127.5));
+ for(let k=0;k<12;k++)box(.0204,.0058,.0036,DK,0,Y(104),Z(46+k*14.5));
+ box(.022,.012,(235-45)*s,ST,0,Y(181),Z(140));
+ for(let k=0;k<10;k++)box(.0224,.0126,.0033,DK,0,Y(181),Z(56+k*17.5));
+ // mira dianteira
+ box(.014,.012,.012,BK,0,Y(99),Z(26));
+ // ferrolho (aço) com serrilhas, mira traseira em V, alavanca de trava
+ ex([[218,107],[330,107],[396,110],[408,118],[406,173],[218,173]],.030,.0035,ST,SL);
+ for(let k=0;k<11;k++)[-1,1].forEach(sg=>box(.0007,.038,.0022,DK,sg*.0187,Y(140),Z(304+k*8.5),SL));
+ box(.016,.011,.0082,BK,0,Y(100),Z(378),SL);box(.016,.011,.0082,BK,0,Y(100),Z(398),SL);
+ [-1,1].forEach(sg=>{cyl(.0075,.004,BK,sg*.0205,Y(128),Z(386),SL);const l=box(.0045,.004,.016,BK,sg*.0215,Y(121),Z(404),SL);l.rotation.x=.35});
+ // martelo (fixo) e armação com guarda-mato vazado + cauda
+ ex([[408,114],[420,110],[433,116],[444,111],[447,128],[434,138],[408,136]],.009,.0015,BK);
+ ex([[232,172],[405,172],[472,176],[481,185],[449,197],[447,324],[438,339],[328,339],[322,248],[312,250],[246,250],[232,240]],.032,.003,ST,null,
+    [[[241,195],[316,195],[313,226],[304,238],[250,238],[241,228]]]);
+ // gatilho, empunhadura de borracha, parafuso, botão do pente e base do carregador
+ ex([[286,196],[295,196],[298,214],[290,232],[281,230],[285,214]],.007,.001,ST);
+ ex([[326,200],[441,210],[443,323],[435,334],[331,334]],.040,.004,RB);
+ [-1,1].forEach(sg=>{cyl(.0035,.003,ST,sg*.0235,Y(300),Z(426));cyl(.0045,.003,BK,sg*.0185,Y(207),Z(333))});
+ ex([[326,337],[448,337],[446,353],[330,353]],.036,.003,ST);
+ // gravações no lado visível (-x): nome no ferrolho e calibre no cano
+ const eng=(t1,t2,w,h,fs)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;const c=cv.getContext('2d');c.fillStyle='rgba(34,38,42,.8)';c.font='bold '+fs+'px Arial, sans-serif';c.textAlign='center';c.textBaseline='middle';
+  c.fillText(t1,w/2,t2?h*.3:h/2);if(t2){c.font='bold '+Math.round(fs*.82)+'px Arial, sans-serif';c.fillText(t2,w/2,h*.74)}return new THREE.CanvasTexture(cv)};
+ const pl=(tex,pw,ph,x,y,z,grp)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(pw,ph),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  m.rotation.y=-Math.PI/2;m.position.set(x,y,z);m.renderOrder=gpOrder();(grp||g).add(m)};
+ pl(eng('DESERT EAGLE PISTOL ®','MADE IN USA',512,128,50),.072,.018,-.0192,Y(150),Z(276),SL);
+ pl(eng('50AE',null,256,96,70),.03,.011,-.0166,Y(158),Z(40));
+ g.scale.x=1.35;   // Desert Eagle mais grossa
+});
 const W={
  glock:{n:'GLOCK-18',slot:2,dmg:26,rate:.16,mag:20,res:80,rt:1.3,auto:0,sp:.006,pel:1,price:0,mz:-.4,kick:.7,desc:'Pistola básica, precisa e barata.'},
- deagle:{n:'DESERT EAGLE',slot:2,dmg:58,rate:.42,mag:7,res:35,rt:1.8,auto:0,sp:.005,pel:1,price:650,mz:-.45,kick:1.6,desc:'Muito forte: 2 tiros no corpo, 1 na cabeça.'},
+ deagle:{n:'DESERT EAGLE',slot:2,dmg:58,rate:.42,mag:7,res:35,rt:1.8,auto:0,sp:.005,pel:1,price:650,mz:-.3,kick:3.8,gk:3.2,rk:1,desc:'Muito forte: 2 tiros no corpo, 1 na cabeça.'},
  rifle:{n:'AK-47',slot:1,dmg:34,rate:.1,mag:30,res:90,rt:1.6,auto:1,sp:.004,pel:1,price:2700,mz:-.65,kick:1,desc:'Automática, boa em qualquer distância.'},
  shotgun:{n:'DOZE (12)',slot:1,dmg:15,rate:.85,mag:8,res:32,rt:2.2,auto:0,sp:.05,pel:8,price:1200,mz:-.8,kick:2.5,desc:'8 projéteis, devastadora de perto.'},
  sniper:{n:'AWP',slot:1,dmg:115,rate:1.4,mag:5,res:20,rt:2.6,auto:0,sp:.05,pel:1,price:4750,scope:1,mz:-1,kick:3,desc:'1 tiro no corpo mata. Zoom: botão direito.'},
@@ -324,8 +445,119 @@ const mfSpikes=[];for(let i=0;i<4;i++){const sp=new THREE.Mesh(new THREE.PlaneGe
 mf.position.set(0,.02,-.65);mf.renderOrder=1000;mf.visible=false;gun.add(mf);
 const muzzleLight=new THREE.PointLight(0xffaa55,0,5,2);muzzleLight.position.set(.24,-.2,-1.25);cam.add(muzzleLight);
 gun.position.set(.24,-.18,-.62);cam.add(gun);
-const knife=new THREE.Group();gpart(.02,.07,.34,0xdddde6,0,0,-.17,knife);gpart(.03,.04,.12,0x3a2a1a,0,-.01,.06,knife);gpart(.05,.015,.03,0x444444,0,-.01,0,knife);knife.visible=false;cam.add(knife);
-function sel(n){if(n==wpn||state=='dead')return;save();wpn=n;reloading=0;scoped=false;equip();fireCd=.45;tone(400,.04,.1)}
+// ---- Karambit: cabo com ranhuras, anel de dedo e lâmina curva (em segmentos) ----
+// knife = pose na tela · kspin = giro em torno do anel (eixo X) · kin = peças, deslocadas para o anel ficar na origem
+const knife=new THREE.Group(),kspin=new THREE.Group(),kin=new THREE.Group();
+knife.rotation.order='ZXY';   // gira (yaw) → inclina (pitch) → rola na tela (roll)
+knife.add(kspin);kspin.add(kin);kin.position.set(0,.02,-.02);
+function gtor(r,t,c,x,y,z,ry,gr){const m=new THREE.Mesh(new THREE.TorusGeometry(r,t,6,16),new THREE.MeshLambertMaterial({color:c,depthTest:false,transparent:true}));m.position.set(x,y,z);m.rotation.y=ry;m.renderOrder=gpOrder();gr.add(m);return m}
+// ---- Karambit cromada: sem mão/braço. Cabo com miolo + cabos laterais (G10), pinos, anel, pivô e lâmina em garra com canal côncavo ----
+{const K=.000436,SX=.285,SY=-.958;   // escala e eixo do cabo, medidos na foto de referência da karambit
+ const hp=(a,b)=>new THREE.Vector2(-a*K+.02,-b*K-.02),LH=.62,SH=(340-52)*(1-LH);   // LH = comprimento do cabo (1 = original)
+ const hh=(a,b)=>hp(52+(a-52)*LH,b*1.0);
+ const ip=(x,y)=>{const vx=x-75,vy=y-455;return hp(vx*SX+vy*SY-SH,vx*.958+vy*.285)};   // pixel da foto → (z,y)
+ const sp=(pts,n)=>new THREE.SplineCurve(pts).getSpacedPoints(n);
+ // ---- "matcap" cromado procedural: reflexo de estúdio (céu iridescente, horizonte escuro, softboxes, borda brilhante) ----
+ const hsv=(h,s,v)=>{h=((h%1)+1)%1;const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6]};
+ const sst=(a,b,x)=>{x=Math.min(1,Math.max(0,(x-a)/(b-a)));return x*x*(3-2*x)};
+ const mkMC=(h0,hs,sat,dark,vm)=>{const S=256,cv=document.createElement('canvas');cv.width=cv.height=S;const g=cv.getContext('2d'),im=g.createImageData(S,S),d=im.data;
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+   const nx=(i+.5)/S*2-1,ny=1-(j+.5)/S*2;let r2=nx*nx+ny*ny;const o=(j*S+i)*4;
+   const cl=Math.min(r2,.9999),nz=Math.sqrt(1-cl),k=Math.sqrt(cl/Math.max(r2,1e-6));
+   const ax=nx*k,ay=ny*k;
+   const rx=2*nz*ax,ry=2*nz*ay,rz=2*nz*nz-1;   // reflexão do raio da câmera
+   const el=ry,az=Math.atan2(rx,rz)/Math.PI;
+   let v=(el>0?.6+.4*Math.sqrt(el):.2+.32*(1+el))*vm;
+   const h=h0+el*hs+az*.2;
+   let c=hsv(h,sat,v);
+   const hz=Math.exp(-Math.pow((el+.05)/.1,2))*dark;c=c.map(x=>x*(1-hz)+.015*hz);          // linha escura do horizonte
+   const b1=sst(.2,.28,el)*(1-sst(.6,.68,el))*sst(-.86,-.78,az)*(1-sst(-.36,-.28,az));       // softbox superior
+   const b2=sst(-.44,-.37,el)*(1-sst(-.1,-.03,el))*sst(.28,.35,az)*(1-sst(.78,.86,az));      // faixa inferior
+   const bb=Math.min(1,b1*.95+b2*.7);c=c.map(x=>x+(1-x)*bb);
+   const rim=Math.pow(1-nz,2.6),rc=hsv(h0+.5+az*.3,.55,1);c=c.map((x,n)=>x+(rc[n]-x)*rim*.6);  // brilho de borda
+   d[o]=Math.min(255,c[0]*255);d[o+1]=Math.min(255,c[1]*255);d[o+2]=Math.min(255,c[2]*255);d[o+3]=255}
+  g.putImageData(im,0,0);return new THREE.CanvasTexture(cv)};
+ // depthTest ligado: as peças se ordenam em profundidade entre si (o giro de 360° fica correto); o primeiro mesh limpa o depth para a faca nunca atravessar paredes
+ const mkM=mc=>new THREE.MeshMatcapMaterial({matcap:mc,depthTest:true,depthWrite:true,transparent:true,side:THREE.DoubleSide});
+ const MB=mkM(mkMC(.0,1.7,.88,.9,1)),        // lâmina: arco-íris cromado
+       MH=mkM(mkMC(.74,.4,.8,.92,.78)),      // miolo do cabo: violeta/azul cromado escuro
+       MS=mkM(mkMC(.52,.55,.75,.96,.5)),     // cabos laterais: verde-azulado escuro
+       MR=mkM(mkMC(.12,1.3,.6,.75,1));       // anel, pinos e pivô: prata/ouro iridescente
+ let firstMesh=null;
+ const add=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.renderOrder=gpOrder();if(!firstMesh){firstMesh=m;m.onBeforeRender=r=>r.clearDepth()}kin.add(m);return m};
+ const mkH=(pts,depth,bev,mat,x)=>{const g=new THREE.ExtrudeGeometry(new THREE.Shape(pts),{depth,bevelEnabled:true,bevelThickness:bev,bevelSize:bev*.85,bevelSegments:6,curveSegments:14});
+  g.translate(0,0,-depth/2);g.rotateY(-Math.PI/2);g.computeVertexNormals();return add(g,mat,x||0,0,0)};
+ // contorno do cabo (costas serrilhadas + escavações para os dedos) — mesmo desenho da referência
+ const back=[[52,-38],[58,-31],[64,-38],[72,-31],[80,-38],[88,-31],[96,-40],[140,-43],[200,-46],[260,-46],[320,-40],[340,-30]].map(p=>hh(p[0],p[1]));
+ const front=[[338,52],[300,56],[276,46],[256,28],[240,34],[222,50],[206,50],[186,38],[172,20],[158,32],[140,48],[126,48],[108,36],[95,18],[80,28],[62,34],[54,32]].map(p=>hh(p[0],p[1]));
+ const outline=[...back,hh(343,10),...sp(front,60)];
+ mkH(outline,.0045,.0025,MH,0);                                   // miolo (primeiro mesh)
+ {let cz=0,cy=0;outline.forEach(p=>{cz+=p.x;cy+=p.y});cz/=outline.length;cy/=outline.length;
+  const inset=outline.map(p=>new THREE.Vector2(cz+(p.x-cz)*.94,cy+(p.y-cy)*.7));
+  [-1,1].forEach(s=>mkH(inset,.002,.0013,MS,s*.0062))}          // cabos laterais em relevo
+ // pinos e pivô (cilindros ao longo do eixo X)
+ const pinG=new THREE.CylinderGeometry(1,1,1,20),domeG=new THREE.SphereGeometry(1,16,10);
+ const pin=(z,y,r,len)=>{const m=add(pinG,MR,0,y,z);m.scale.set(r,len,r);m.rotation.z=Math.PI/2;
+  [-1,1].forEach(s=>add(domeG,MR,s*len/2,y,z).scale.set(r*.3,r*1.12,r*1.12))};
+ [110,205,308].forEach(a=>{const p=hh(a,0);pin(p.x,p.y,.0026,.02)});
+ // anel de dedo: toro achatado, bem grosso
+ {const tg=new THREE.TorusGeometry(.0215,.0044,14,44);const r=add(tg,MR,0,-.02,.012);r.rotation.y=Math.PI/2;r.scale.set(1,1.08,.55)}
+ // pivô na junção cabo/lâmina
+ {const z=-.0735,y=-.0205;pin(z,y,.0095,.022);pin(z,y,.004,.03)}
+ // textura quadriculada (grip) nos cabos laterais, perto do dorso
+ {const bg=new THREE.BoxGeometry(.0008,.008,.0011),zA=hh(100,0).x,zB=hh(300,0).x;
+  for(let k=0;k<=9;k++){const z=zA+(zB-zA)*k/9;
+   [[-.010,.7],[-.0165,-.7]].forEach(([y,r],row)=>{const zz=z+(row?.0028:0);
+    [-1,1].forEach(sg=>{const b=add(bg,MS,sg*.0087,y,zz);b.rotation.x=r})})}}
+ // guarda em losango na junção cabo/lâmina
+ {const sh=[new THREE.Vector2(-.057,-.0135),new THREE.Vector2(-.0735,-.0035),new THREE.Vector2(-.095,-.0105),new THREE.Vector2(-.094,-.034),new THREE.Vector2(-.0735,-.041),new THREE.Vector2(-.057,-.031)];
+  [-1,1].forEach(sg=>{const g=new THREE.ExtrudeGeometry(new THREE.Shape(sh),{depth:.0025,bevelEnabled:true,bevelThickness:.0016,bevelSize:.0014,bevelSegments:5});
+   g.translate(0,0,-.00125);g.rotateY(-Math.PI/2);g.computeVertexNormals();add(g,MH,sg*.0078,0,0)})}
+ // lâmina em garra: dorso arredondado, canal côncavo (hollow grind) e fio em bisel, ponta afiada
+ {const dors=[[125,140],[150,108],[190,72],[245,42],[310,30],[375,30],[435,38],[485,52],[528,68]].map(p=>ip(p[0],p[1]));
+  const edge=[[528,68],[498,71],[450,85],[395,105],[335,133],[280,166],[240,197],[214,222]].map(p=>ip(p[0],p[1]));
+  const N=64,D=sp(dors,N),E=sp(edge,N).reverse();
+  {const Bz=(D[0].x+E[0].x)/2,By=(D[0].y+E[0].y)/2,LS=1.4,WN=.52;   // LS = comprimento (a partir da base) · WN = largura (em torno da linha central)
+   for(let i=0;i<=N;i++){const mx=(D[i].x+E[i].x)/2,my=(D[i].y+E[i].y)/2,cx=Bz+(mx-Bz)*LS,cy=By+(my-By)*LS;
+    const k=LS*WN;D[i]=new THREE.Vector2(cx+(D[i].x-mx)*k,cy+(D[i].y-my)*k);E[i]=new THREE.Vector2(cx+(E[i].x-mx)*k,cy+(E[i].y-my)*k)}}
+  const M=10;   // pontos por face
+  // faces (cada uma é uma linha de pontos na seção; vértices só compartilhados dentro da face → normais suaves na face, arestas vivas entre faces)
+  const faces=[];
+  const secPts=(i)=>{const u=i/N,t=.0042*(1-.6*u)+.0008,d=D[i],e=E[i];
+   const L=s=>({y:d.y+(e.y-d.y)*s,z:d.x+(e.x-d.x)*s});
+   let dx=d.x-e.x,dy=d.y-e.y;const dl=Math.hypot(dx,dy)||1;dx/=dl;dy/=dl;   // direção do fio para o dorso
+   const out=[];
+   for(const sg of [1,-1]){
+    const f1=[],f2=[],f3=[];
+    for(let m=0;m<M;m++){const q=m/(M-1);   // ombro do dorso: t*.72 → t
+     const P=L(q*.14);f1.push([sg*t*(.72+.28*Math.sin(q*Math.PI/2)),P.y,P.z])}
+    for(let m=0;m<M;m++){const q=m/(M-1);   // canal côncavo
+     const P=L(.14+q*.5);f2.push([sg*t*(1-.3*Math.sin(q*Math.PI)),P.y,P.z])}
+    for(let m=0;m<M;m++){const q=m/(M-1);   // bisel do fio
+     const P=L(.64+q*.36);f3.push([sg*t*.96*(1-q),P.y,P.z])}
+    out.push(sg>0?[f1,f2,f3]:[f1,f2,f3])}
+   // dorso (arco sobre a espinha)
+   const top=[];for(let m=0;m<M;m++){const a=Math.PI*m/(M-1);top.push([t*.72*Math.cos(a),d.y+dy*t*.42*Math.sin(a),d.x+dx*t*.42*Math.sin(a)])}
+   return {pos:out[0],neg:out[1],top}};
+  const S=[];for(let i=0;i<=N;i++)S.push(secPts(i));
+  const pos=[],idx=[];let vb=0;
+  const strip=(get)=>{const base=vb;for(let i=0;i<=N;i++){const P=get(S[i]);for(let m=0;m<M;m++){pos.push(P[m][0],P[m][1],P[m][2])}}vb+=(N+1)*M;
+   for(let i=0;i<N;i++)for(let m=0;m<M-1;m++){const a=base+i*M+m,b=a+1,c=base+(i+1)*M+m+1,dd=c-1;idx.push(a,b,c,a,c,dd)}};
+  strip(s=>s.top);
+  for(let f=0;f<3;f++){strip(s=>s.pos[f]);strip(s=>s.neg[f])}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  add(g,MB,0,0,0);
+  // frisos dourados ondulados ao longo da lâmina (nos dois lados)
+  [.27,.46].forEach((s0,n)=>[-1,1].forEach(sg=>{const pts=[];
+   for(let i=3;i<=N-7;i+=2){const u=i/N,t=.0042*(1-.6*u)+.0008,d=D[i],e=E[i],ss=s0+.018*Math.sin(u*(10+n*4)+n);
+    pts.push(new THREE.Vector3(sg*(t*(n?.9:.74)+.0006),d.y+(e.y-d.y)*ss,d.x+(e.x-d.x)*ss))}
+   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),80,.00065,6,false),MR,0,0,0)}))}}
+knife.visible=false;cam.add(knife);
+const kTrail=new THREE.Mesh(new THREE.RingGeometry(.30,.335,48,1,0,1.5),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));kTrail.renderOrder=1000;kTrail.position.set(-.05,-.12,-.6);kTrail.visible=false;cam.add(kTrail);
+const QE=new THREE.Quaternion(),EU=new THREE.Euler();   // QE = movimento do golpe (em espaço de câmera)
+const KT=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(.78,.62,0).normalize(),-.88);   // deita a faca em torno do eixo cabo→ponta: o lado do dorso (cima/esquerda) vai para longe da câmera, o lado do fio/guarda vem para perto
+let kSpin=0;  // 1 → 0 durante o giro ao sacar a faca
+function sel(n){if(n==wpn||state=='dead')return;save();wpn=n;reloading=0;scoped=false;equip();fireCd=.45;tone(400,.04,.1);if(n==3){kSpin=1;snd('step',.35)}else kSpin=0}
 
 // ---------- Bots ----------
 function mkBot(){const g=new THREE.Group();
@@ -489,7 +721,49 @@ function explode(x,z){const p=new THREE.Vector3(x,1.1,z);
  shakeT=.65;dmgA=Math.max(dmgA,.4);
  tone(50,.9,.5,'sawtooth');tone(85,.55,.35,'square');snd('boom',1);
  const dd=Math.hypot(P.x-x,P.z-z),R=15;if(dd<R)hurt(Math.max(0,95*(1-dd/R)));
+ for(const o of barrels)if(!o.dead&&o.fuse<0&&Math.hypot(o.x-x,o.z-z)<R)o.fuse=.1+Math.random()*.4;
  feed('💥 A bomba explodiu!')}
+function hitBarrel(br){if(!br.dead&&br.fuse<0)br.fuse=.04}   // atingido por tiro/faca/explosão: detona em instantes
+function respawnBarrels(){for(const br of barrels){if(!br.dead&&br.fuse<0)continue;br.fuse=-1;
+  if(br.stump){scene.remove(br.stump);br.stump=null}
+  if(br.dead){br.dead=false;scene.add(br.m);solids.push(br.m);shootables.push(br.m);boxes.push(br.box)}}
+ if(navB)navInit()}
+function explodeBarrel(br){if(br.dead)return;br.dead=true;br.fuse=-1;
+ const x=br.x,z=br.z,p=new THREE.Vector3(x,.9,z),R=7.5;
+ scene.remove(br.m);let k=solids.indexOf(br.m);if(k>=0)solids.splice(k,1);k=shootables.indexOf(br.m);if(k>=0)shootables.splice(k,1);k=boxes.indexOf(br.box);if(k>=0)boxes.splice(k,1);
+ if(navB)navInit();
+ // --- animação: clarão, bola de fogo, onda de choque, chamas, fumaça, destroços, faíscas, marca de queimado e restos carbonizados ---
+ explLight.position.set(x,2,z);explLight.intensity=Math.max(explLight.intensity,15);
+ const b1=new THREE.Mesh(new THREE.SphereGeometry(.5,10,8),new THREE.MeshBasicMaterial({color:0xfff6c0,transparent:true}));b1.position.copy(p);b1.scale.set(.25,.25,.25);scene.add(b1);pushFx({m:b1,t:.22,fadeMax:.22,grow:10,d:1});
+ const b2=new THREE.Mesh(new THREE.SphereGeometry(.5,10,8),new THREE.MeshBasicMaterial({color:0xff5a12,transparent:true}));b2.position.copy(p);b2.scale.set(.2,.2,.2);scene.add(b2);pushFx({m:b2,t:.5,fadeMax:.5,grow:6.2,d:1});
+ const rg=new THREE.Mesh(new THREE.RingGeometry(.3,.6,28),new THREE.MeshBasicMaterial({color:0xffe0a0,transparent:true,side:THREE.DoubleSide,depthWrite:false}));rg.rotation.x=-Math.PI/2;rg.position.set(x,.08,z);rg.scale.set(.5,.5,.5);scene.add(rg);pushFx({m:rg,t:.4,fadeMax:.4,grow:12,d:1});
+ for(let i=0;i<10;i++){const m=new THREE.Mesh(fxGeo,new THREE.MeshBasicMaterial({color:i%2?0xff9a28:0xffe070,transparent:true})),s2=3+Math.random()*3.5;m.scale.set(s2,s2,s2);m.position.copy(p).add(new THREE.Vector3((Math.random()-.5)*.7,Math.random()*.4,(Math.random()-.5)*.7));scene.add(m);
+  pushFx({m,t:.5+Math.random()*.7,fadeMax:.6,grow:-.4+Math.random()*.6,v:new THREE.Vector3((Math.random()-.5)*1.6,2+Math.random()*2.4,(Math.random()-.5)*1.6),grav:1.5})}
+ for(let i=0;i<8;i++){const s2=.45+Math.random()*.5,m=new THREE.Mesh(new THREE.SphereGeometry(.4,7,6),new THREE.MeshBasicMaterial({color:0x2a2825,transparent:true}));m.scale.set(s2,s2,s2);m.position.copy(p).add(new THREE.Vector3((Math.random()-.5)*1.1,Math.random()*.5,(Math.random()-.5)*1.1));scene.add(m);
+  pushFx({m,t:1.4+Math.random()*.8,fadeMax:1,grow:.8+Math.random()*.7,v:new THREE.Vector3((Math.random()-.5)*1,1.5+Math.random()*1,(Math.random()-.5)*1),grav:-2.2,d:1})}
+ const body=new THREE.Mesh(bGeo,new THREE.MeshLambertMaterial({color:0x7a2a20,transparent:true}));body.position.set(x,1,z);scene.add(body);   // o barril voa para cima girando
+ pushFx({m:body,t:1,fadeMax:.35,v:new THREE.Vector3((Math.random()-.5)*2.4,7.5,(Math.random()-.5)*2.4),grav:14,spin:9});
+ for(let i=0;i<6;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.2,.04,.14),new THREE.MeshLambertMaterial({color:i%2?0x8a2f24:0x555555,transparent:true}));m.position.copy(p);scene.add(m);
+  pushFx({m,t:.9,fadeMax:.3,v:new THREE.Vector3((Math.random()-.5)*8,3+Math.random()*5,(Math.random()-.5)*8),grav:14,spin:14,d:1})}
+ sparks(p,new THREE.Vector3(0,1,0),22,0xffaa33);
+ const sc=new THREE.Mesh(new THREE.CircleGeometry(1.5,18),new THREE.MeshBasicMaterial({color:0x0c0a08,transparent:true,depthWrite:false}));sc.rotation.x=-Math.PI/2;sc.position.set(x,.03,z);scene.add(sc);pushFx({m:sc,t:12,fadeMax:3,d:1});
+ const st=new THREE.Mesh(new THREE.CylinderGeometry(.42,.38,.2,12),new THREE.MeshLambertMaterial({color:0x1b1613}));st.position.set(x,.1,z);st.receiveShadow=true;scene.add(st);br.stump=st;
+ const dpl=Math.hypot(P.x-x,P.z-z);if(dpl<20)shakeT=Math.max(shakeT,.55*(1-dpl/20)+.1);
+ tone(55,.8,.45,'sawtooth');tone(95,.45,.3,'square');snd('boom',Math.max(.35,1-dpl/45));
+ // --- dano no jogador (some se houver parede no meio) e empurrão ---
+ if(dpl<R){const org=new THREE.Vector3(x,.9,z),dv=new THREE.Vector3(P.x,P.y+1,P.z).sub(org),dl=dv.length();dv.normalize();
+  if(dpl<1.2||los1(null,dl,dv,org)){const f=1-dpl/R;hurt(Math.max(6,90*f*f+20*f));dmgA=Math.max(dmgA,.5);
+   if(dpl>.1){P.vx+=(P.x-x)/dpl*7*f;P.vz+=(P.z-z)/dpl*7*f}}}
+ // --- dano nos bots/zumbis ---
+ let hitN=0;
+ for(const b of bots){if(b.dead)continue;const bp=b.g.position,db=Math.hypot(bp.x-x,bp.z-z);if(db>=R)continue;
+  const org=new THREE.Vector3(x,.9,z),dv=new THREE.Vector3(bp.x,1.1,bp.z).sub(org),dl=dv.length();dv.normalize();
+  if(db>1.2&&!los1(null,dl,dv,org))continue;
+  const f=1-db/R,d=Math.max(10,110*f*f+30*f);b.hp-=d;b.alert=8;b.tx=P.x;b.tz=P.z;hitN++;blood(new THREE.Vector3(bp.x,1.2,bp.z));
+  if(b.hp<=0&&!b.dead)kill(b,false,false)}
+ feed('🛢️💥 Barril explodiu'+(hitN?' · '+hitN+' atingido'+(hitN>1?'s':''):''));
+ // --- reação em cadeia nos barris vizinhos ---
+ for(const o of barrels){if(o.dead||o.fuse>=0)continue;if(Math.hypot(o.x-x,o.z-z)<3.8)o.fuse=.12+Math.random()*.25}}
 function feed(t){const d=document.createElement('div');d.textContent=t;$('feed').appendChild(d);setTimeout(()=>d.remove(),4000)}
 function banner(t){const b=$('banner');b.textContent=t;b.style.opacity=1;clearTimeout(banner.h);banner.h=setTimeout(()=>b.style.opacity=0,1800)}
 function hurt(d){if(P.armor>0){const blocked=Math.min(P.armor,d*.5);d-=blocked;P.armor-=blocked}P.hp-=d;dmgA=.7;tone(140,.12,.25,'sawtooth');if(P.hp<=0&&state!='dead')die()}
@@ -513,7 +787,7 @@ function shoot(){const w=gw();
  if(w.scope)sp=scoped?.0004+mv*.05+(P.ground?0:.12):.08+mv*.05;
  heat=Math.min(1,heat+.12*rm*(w.auto?1:.4));kick+=.022*rm*w.kick;P.pitch+=.0052*rm*w.kick;
  if(w.auto)P.yaw+=Math.sin((w.mag-ammo)*.8)*.0022*rm;
- flash=.07;gunKick=.1;cam.updateMatrixWorld();rc.far=200;
+ flash=.07;gunKick=.1*(w.gk||1);if(w.rk)P.yaw+=(Math.random()-.5)*.012*w.rk*rm;cam.updateMatrixWorld();rc.far=200;
  const mp=new THREE.Vector3();mf.getWorldPosition(mp);ejectShell(w);
  let firstHitPt=null;
  for(let n=0;n<w.pel;n++){
@@ -523,12 +797,13 @@ function shoot(){const w=gw();
   if(h){const o=h.object,b=o.userData.bot;
    if(b){const head=o.userData.m==4;b.hp-=w.dmg*o.userData.m*(w.pel>1?Math.max(.2,1-h.distance/22):1);b.alert=8;b.tx=P.x;b.tz=P.z;hm=1;blood(h.point);
     if(b.hp<=0&&!b.dead)kill(b,head);else if(n==0)tone(head?1800:700,.05,.15,'sine')}
+   else if(o.userData.barrel){hitBarrel(o.userData.barrel);sparks(h.point,h.face?h.face.normal:null,5,0xffaa33)}
    else if(h.face){const nrm=h.face.normal;sparks(h.point,nrm,3+(Math.random()*2|0));bulletHole(h.point,nrm)}}}
  tracer(mp,firstHitPt);
  if(ammo<=0)startReload()}
-function stab(){kAnim=1;tone(240,.07,.12,'sawtooth');cam.updateMatrixWorld();rc.far=2.6;rc.setFromCamera(new THREE.Vector2(0,0),cam);
+function stab(){kAnim=1;kSpin=0;tone(240,.07,.12,'sawtooth');cam.updateMatrixWorld();rc.far=2.6;rc.setFromCamera(new THREE.Vector2(0,0),cam);
  const h=rc.intersectObjects(targets(),false)[0];
- if(h){const b=h.object.userData.bot;if(b){b.hp-=55;b.alert=8;b.tx=P.x;b.tz=P.z;hm=1;blood(h.point);if(b.hp<=0&&!b.dead)kill(b,false,true);else tone(700,.05,.15,'sine')}else if(h.face){sparks(h.point,h.face.normal,3,0xcccccc);bulletHole(h.point,h.face.normal)}}}
+ if(h){const b=h.object.userData.bot;if(b){b.hp-=55;b.alert=8;b.tx=P.x;b.tz=P.z;hm=1;blood(h.point);if(b.hp<=0&&!b.dead)kill(b,false,true);else tone(700,.05,.15,'sine')}else if(h.object.userData.barrel){hitBarrel(h.object.userData.barrel);sparks(h.point,h.face?h.face.normal:null,4,0xffaa33)}else if(h.face){sparks(h.point,h.face.normal,3,0xcccccc);bulletHole(h.point,h.face.normal)}}}
 // ---- Navegação por caminho (A* em grade de 0,5 m) para contornar a casa, muros e caixas ----
 const NAVG=.5,NAVN=Math.round(62/NAVG)+1,NAVO=-31;let navB=null;
 function navInit(){navB=new Uint8Array(NAVN*NAVN);for(let i=0;i<NAVN;i++)for(let j=0;j<NAVN;j++)navB[i*NAVN+j]=hitsBox(NAVO+i*NAVG,NAVO+j*NAVG,0,.5)?1:0}
@@ -610,12 +885,12 @@ function rayPlayer(o,d){const cx=o.x-P.x,cz=o.z-P.z,a=d.x*d.x+d.z*d.z;if(a<1e-6)
 function bulletTrace(o,dir,maxD){
  let tW=maxD,n=null;
  los.set(o,dir);los.far=maxD;const h=los.intersectObjects(solids,false)[0];
- if(h){tW=h.distance;n=h.face?h.face.normal:null}
+ let hitO=null;if(h){tW=h.distance;n=h.face?h.face.normal:null;hitO=h.object}
  if(dir.y<-1e-4){const tg=-o.y/dir.y;if(tg<tW){tW=tg;n=UPV}}
  const ts=slabT(o,dir,tW);if(ts!=null&&ts<tW){tW=ts;n=dir.y>0?DNV:UPV}
  const tp=rayPlayer(o,dir);
  if(tp!=null&&tp<tW)return{t:tp,player:true};
- return{t:tW,player:false,n:tW<maxD?n:null}}
+ return{t:tW,player:false,n:tW<maxD?n:null,o:hitO}}
 function botSees(p){
  const o=new THREE.Vector3(p.x,1.6,p.z);
  for(const ty of [P.eye-.5,P.eye-.05]){
@@ -641,7 +916,7 @@ function botFire(b,kd,acc){
   const dir=dir0.clone().addScaledVector(right,ay+cy).addScaledVector(up,ap+cp).normalize();
   const r=bulletTrace(o,dir,90),end=o.clone().addScaledVector(dir,r.t);
   if(i<3)tracer(o,end);
-  if(r.player)hits++;else if(r.n){sparks(end,r.n,3);bulletHole(end,r.n)}}
+  if(r.player)hits++;else if(r.o&&r.o.userData.barrel&&r.t<89){hitBarrel(r.o.userData.barrel);sparks(end,r.n,3,0xffaa33)}else if(r.n){sparks(end,r.n,3);bulletHole(end,r.n)}}
  b.bloom=(b.bloom||0)+(kd.bloom||0);
  snd('shot',Math.max(.05,.5-dist/60));sparks(o,null,2,0xffcc66);
  if(hits){let dmg=kd.dmgMin+Math.random()*(kd.dmgMax-kd.dmgMin);
@@ -651,7 +926,7 @@ function botFire(b,kd,acc){
 function los1(b,d,dir,org){los.set(org,dir);los.far=d;return los.intersectObjects(solids,false).length==0}
 function sndRoundTransition(){state='between';roundT=3.5;bomb=null;planting=0;hideBombModel();
  for(const b of bots)scene.remove(b.g);bots.length=0;
- Object.assign(P,{x:0,y:0,z:26,vx:0,vz:0,vy:0,ground:true});P.hp=100;refill();
+ respawnBarrels();Object.assign(P,{x:0,y:0,z:26,vx:0,vz:0,vy:0,ground:true});P.hp=100;refill();
  $('plant').style.display='none';$('pmsg').style.display='none';
  banner('PLACAR '+sndWin+' x '+sndLoss+' · B = LOJA')}
 function sndRoundWin(reward,text){sndWin++;money=Math.min(30000,money+reward);feed(text+' · +$'+reward);tone(1200,.3,.25,'sine');
@@ -695,12 +970,27 @@ function update(dt){
  // arma
  const tf=scoped?22:baseFov;if(Math.abs(cam.fov-tf)>.05){cam.fov+=(tf-cam.fov)*Math.min(1,dt*16);cam.updateProjectionMatrix()}
  gun.visible=wpn!=3&&!scoped;
- fireCd-=dt;heat=Math.max(0,heat-dt*1.6);gunKick*=Math.exp(-dt*14);
+ fireCd-=dt;heat=Math.max(0,heat-dt*1.6);gunKick*=Math.exp(-dt*(gw().gk?7.5:14));
  if(reloading>0){reloading-=dt;if(reloading<=0){const n=Math.min(gw().mag-ammo,reserve);ammo+=n;reserve-=n;reloading=0}}
  const wp=gw();if((wp.auto?down:edge)&&fireCd<=0&&reloading<=0&&state!='dead'){edge=false;if(wpn==3){stab();fireCd=.5}else if(ammo>0)shoot();else startReload()}
  const rp=reloading>0?Math.sin((1-reloading/gw().rt)*Math.PI):0;
- gun.position.set(.24+(moving?Math.sin(bobT*.5)*.01:0),-.18-rp*.25+(moving?Math.sin(bobT)*.01:0),-.62+gunKick);gun.rotation.x=-rp*.7+gunKick*.6;
- kAnim=Math.max(0,kAnim-dt*4);knife.position.set(.26-kAnim*.16,-.22+(moving?Math.sin(bobT)*.01:0)-kAnim*.03,-.5-kAnim*.22);knife.rotation.set(-.15-kAnim*.9,-.35,kAnim*.6);
+ gun.position.set(.24+(moving?Math.sin(bobT*.5)*.01:0),-.18-rp*.25+(moving?Math.sin(bobT)*.01:0),-.62+gunKick);gun.rotation.x=-rp*.7+gunKick*.6;gun.rotation.z=gw().gk?gunKick*.4:0;
+ {const dsl=VM.deagle&&VM.deagle.userData.slide;if(dsl)dsl.position.z=Math.min(.09,gunKick*.4)}   // ferrolho da Desert Eagle recua no tiro
+ kAnim=Math.max(0,kAnim-dt*2.4);
+ let ksA=0,kdx=0,kdy=0;
+ if(kSpin>0){kSpin=Math.max(0,kSpin-dt/1.2);const p=1-kSpin,e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+  ksA=e*Math.PI*2;                                   // uma volta completa em torno do anel
+  const lift=Math.sin(Math.min(1,p/.85)*Math.PI);kdy=lift*.05;kdx=-lift*.05;   // sobe e vem ao centro durante o giro
+  const up=Math.max(0,1-p/.25);kdy-=up*up*.3}        // sobe de baixo da tela ao sacar
+ kspin.rotation.x=ksA;
+ const kp=1-kAnim,sm=t=>t<=0?0:t>=1?1:t*t*(3-2*t);   // golpe em fases: recuo → corte rápido para frente → segue o movimento → volta suave
+ const kw=kAnim>0?sm(kp/.2)-sm((kp-.2)/.12):0,ks=kAnim>0?sm((kp-.2)/.14)-sm((kp-.5)/.5):0,kt=kAnim>0?sm((kp-.2)/.12)-sm((kp-.34)/.2):0;
+ const ka=Math.min(1,cam.aspect/1.7778),ksc=1.4*(.72+.28*ka);knife.scale.setScalar(ksc);
+ const sw=performance.now()/1000;knife.position.set((.15-(1-ka)*.2)+kdx+kw*.07-ks*.2,-.27+Math.sin(sw*1.7)*.004+(moving?Math.sin(bobT)*.01:0)+kdy+kw*.03-ks*.02,-.5+kw*.08-ks*.34);
+ knife.rotation.set(.1+Math.sin(sw*1.1)*.012,.95+Math.sin(sw*.9)*.02,3.39+Math.sin(sw*1.3)*.015);knife.quaternion.premultiply(KT);
+ // golpe com a lâmina: recua a ponta (sentido horário), depois corta em arco da direita para o centro/esquerda enquanto a ponta avança em profundidade
+ QE.setFromEuler(EU.set(-ks*.5,0,-kw*.5+ks*1.5,'ZXY'));knife.quaternion.premultiply(QE);
+ kTrail.visible=wpn==3&&kt>.02;if(kTrail.visible){kTrail.material.opacity=.7*kt;kTrail.position.set(knife.position.x,knife.position.y,knife.position.z-.02);kTrail.rotation.z=1.05-kw*.5+ks*1.5-1.5}
  flash-=dt;const flK=Math.max(0,flash)/.07;mf.visible=flK>0;
  if(mf.visible){mf.rotation.z=Math.random()*6.28;const cs=.55+flK*.9;mfCore.scale.set(cs,cs,cs);mfCore.material.opacity=flK;
   mfSpikes.forEach(sp=>{sp.material.opacity=flK*.85;const ss=.7+flK*.7;sp.scale.set(ss,1,ss)})}
@@ -788,6 +1078,7 @@ function update(dt){
   if(f.grow){const s=f.m.scale.x+f.grow*dt;f.m.scale.set(s,s,s)}
   if(f.fadeMax&&f.m.material)f.m.material.opacity=Math.max(0,Math.min(1,f.t/f.fadeMax));
   if(f.t<=0){scene.remove(f.m);if(f.d&&f.m.geometry)f.m.geometry.dispose();fxs.splice(i,1)}}
+ for(const br of barrels){if(!br.dead&&br.fuse>=0){br.fuse-=dt;if(br.fuse<=0)explodeBarrel(br)}}
  hm=Math.max(0,hm-dt*5);dmgA=Math.max(0,dmgA-dt*1.2);explLight.intensity=Math.max(0,explLight.intensity-dt*24);shakeT=Math.max(0,shakeT-dt);
  // HUD
  $('hp').textContent='❤ '+Math.ceil(P.hp)+(P.armor>0?' 🛡'+Math.ceil(P.armor)+(P.helmet?'⛑':''):'');$('am').innerHTML=wpn==3?'FACA':'<small>'+gw().n+'</small> '+ammo+' <small>/ '+reserve+(reloading>0?' · RECARREGANDO':'')+'</small>';
@@ -813,7 +1104,7 @@ function radar(){const c=rctx,S=520,k=S/64;c.setTransform(1,0,0,1,0,0);c.clearRe
 // ---------- Controle / Loop ----------
 function newGame(m){mode=m||mode;for(const b of bots)scene.remove(b.g);bots.length=0;
  for(const q of goos)scene.remove(q.m);goos.length=0;
- Object.assign(P,{x:0,y:0,z:26,vx:0,vz:0,vy:0,yaw:0,pitch:0,hp:100,armor:0,helmet:false,eye:1.7,ground:true});
+ respawnBarrels();Object.assign(P,{x:0,y:0,z:26,vx:0,vz:0,vy:0,yaw:0,pitch:0,hp:100,armor:0,helmet:false,eye:1.7,ground:true});
  inv={pri:null,sec:'glock'};mags={glock:{ammo:W.glock.mag,reserve:W.glock.res}};wpn=2;scoped=false;equip();reloading=0;kills=0;hs=0;round=0;
  bomb=null;planting=0;hideBombModel();sndWin=0;sndLoss=0;zWave=0;
  $('plant').style.display='none';$('pmsg').style.display='none';
