@@ -25,6 +25,7 @@ canvas{display:block}
 body.inmenu #skipw,body.inshop #skipw{display:none!important}
 #medbar{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);width:260px;height:18px;background:#0009;border:1px solid #fff6;border-radius:9px;overflow:hidden;display:none;z-index:5}#medbar i{display:block;height:100%;width:0%;background:#33dd55}#medbar b{position:absolute;inset:0;text-align:center;font-size:11px;line-height:18px;letter-spacing:2px;text-shadow:0 1px 3px #000}
 body.inmenu #medbar,body.inshop #medbar{display:none!important}
+#mpModes{display:flex;gap:6px;margin-bottom:8px}#mpModes .mm{flex:1;margin:0;padding:9px 4px;font-size:12px;opacity:.75}#mpModes .mm.on{opacity:1;background:#e8b923;color:#111}#mpMode{font-weight:800;letter-spacing:2px;color:#ffd24a;margin:6px 0}
 #banner{position:fixed;top:22%;width:100%;text-align:center;font-size:46px;font-weight:800;letter-spacing:4px;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .4s;pointer-events:none}
 #menu{position:fixed;inset:0;z-index:20;display:flex;overflow:auto;box-sizing:border-box;padding:20px;font-family:Rajdhani,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(ellipse at 50% 45%,#0004 0%,#000c 90%),#0008}
 #center{margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:520px}
@@ -174,14 +175,24 @@ body.inmenu #sb{display:none!important}
 <button id="cfgx">VOLTAR</button></div></div>
 </div>
 <div id="mp"><div id="mpbox">
-<h2>MULTI<b>PLAYER</b></h2>
+<h2 id="mpTitle">MULTI<b>PLAYER</b></h2>
 <div id="mpHome" class="mpv">
-<p>Mata-mata online com seus amigos: até 6 jogadores, vence quem fizer 15 abates primeiro. A conexão é direta entre os jogadores, sem servidor.</p>
+<p>Jogue online com seus amigos (até 6 jogadores): escolha o modo da sala abaixo. No mata-mata vence quem fizer 15 abates primeiro. A conexão é direta entre os jogadores, sem servidor.</p>
+<label>Modo da sala</label><div id="mpModes"><button class="mpb mm on" data-m="dm">Mata-mata</button><button class="mpb mm" data-m="zombie">Modo Zumbi</button><button class="mpb mm" data-m="snd">Procura e Destruição</button></div>
 <label for="mpName">Seu nome</label><input id="mpName" maxlength="14" autocomplete="off">
 <button class="mpb" id="mpHostB">Criar sala</button>
 <button class="mpb" id="mpJoinB">Entrar em uma sala</button>
-<button class="mpb gh" id="mpBotB">Treino contra bots (bomba)</button>
+<button class="mpb gh" id="mpBotB">Treino contra bots</button>
 <button class="mpb gh" id="mpBack">Voltar</button>
+</div>
+<div id="mpBotView" class="mpv">
+<p>Treino offline contra bots: escolha o modo de jogo.</p>
+<label>Modo de treino</label>
+<button class="mpb tb" data-m="dmb">Mata-mata</button>
+<button class="mpb tb" data-m="snd">Procura e Destruição</button>
+<button class="mpb tb" data-m="zombie">Modo Zumbi</button>
+<p id="tbDesc" style="font-size:15px;opacity:.8;min-height:40px"></p>
+<button class="mpb gh" id="tbBack">Voltar</button>
 </div>
 <div id="mpRoom" class="mpv">
 <div id="mpHostBox">
@@ -196,7 +207,7 @@ body.inmenu #sb{display:none!important}
 <label>2 · Envie esta resposta ao anfitrião</label><textarea id="mpAnsOut" readonly></textarea>
 <button class="mpb gh" id="mpCopyAns">Copiar resposta</button>
 </div>
-<label>Jogadores na sala</label><div id="mpRoster"></div>
+<div id="mpMode"></div><label>Jogadores na sala</label><div id="mpRoster"></div>
 <div id="mpSt"></div>
 <button class="mpb" id="mpStart" style="display:none">Iniciar partida</button>
 <button class="mpb" id="mpEnter" style="display:none">Entrar na partida</button>
@@ -634,6 +645,16 @@ let mode='surv';
 let sndWin=0,sndLoss=0,bomb=null,planting=0,plantSite=null,bombMesh=null,shakeT=0;
 const explLight=new THREE.PointLight(0xff8a2a,0,60,2);scene.add(explLight);
 const SITES={A:{x:22,z:-23},B:{x:-22,z:22}};
+// Mata-mata contra bots (treino offline)
+let dmbDead=false,dmbRt=0,dmbT=0,dmbDeaths=0;const DMB_GOAL=15,DMB_BOTS=5;
+function dmbEnd(win){state='dead';playing=false;needNew=true;dmbDead=false;$('pmsg').style.display='none';if(win)sfxWin();else sfxDeath();if(document.exitPointerLock)document.exitPointerLock();
+ $('msg').textContent=(win?'🏆 VITÓRIA! ':'DERROTA! ')+'Mata-mata '+kills+' x '+dmbDeaths+' · Headshots: '+hs;showMenu(true)}
+function dmbDie(){if(dmbDead)return;dmbDead=true;dmbRt=3;dmbDeaths++;P.hp=0;state='dead';down=false;edge=false;scoped=false;reloading=0;medCancel();gun.visible=false;knife.visible=false;sfxDeath();$('pmsg').style.display='block';
+ if(dmbDeaths>=DMB_GOAL)dmbEnd(false)}
+function dmbRespawn(){dmbDead=false;let best=SP[0],bd=-1;
+ for(const q of SP){let md=1e9;for(const b of bots)if(!b.dead)md=Math.min(md,Math.hypot(q[0]-b.g.position.x,q[1]-b.g.position.z));if(md>bd){bd=md;best=q}}
+ Object.assign(P,{x:best[0],y:0,z:best[1],vx:0,vz:0,vy:0,yaw:Math.atan2(best[0],best[1]),pitch:0,hp:100,armor:0,helmet:false,eye:1.7,ground:true});
+ for(const id of[inv.pri,inv.sec])if(id)mags[id]={ammo:W[id].mag,reserve:W[id].res};reloading=0;state='fight';equip();$('pmsg').style.display='none';banner('VOCÊ RENASCEU')}
 // Modo Zumbi
 const ZPREP=20,ZMONEY0=1000,ZBONUS=500;   // dinheiro inicial e bônus por onda concluída (Modo Zumbi)
 const MEDUSE=3,MEDHP=60,MEDMAX=3,MEDPRICE=400,MEDM=m=>m=='surv'||m=='zombie';let medkits=0,medT=0;
@@ -1896,6 +1917,8 @@ function feed(t){const d=document.createElement('div');d.textContent=t;$('feed')
 function banner(t){const b=$('banner');b.textContent=t;b.style.opacity=1;clearTimeout(banner.h);banner.h=setTimeout(()=>b.style.opacity=0,1800)}
 function hurt(d){if(P.armor>0){const blocked=Math.min(P.armor,d*.5);d-=blocked;P.armor-=blocked}P.hp-=d;dmgA=.7;sfxHurt();if(P.hp<=0&&state!='dead')die()}
 function die(){if(mode=='mp'){mpDie();return}
+if(mode=='dmb'){dmbDie();return}
+if(MP.inGame&&mode=='zombie'){const w=zWave;mpLeave();$('msg').textContent='Você morreu na onda '+w+' · saiu da sala';return}
 if(mode=='snd'&&state=='fight'){sndRoundLose('Você morreu');return}
  P.hp=0;state='dead';playing=false;needNew=true;sfxDeath();if(document.exitPointerLock)document.exitPointerLock();
  $('msg').textContent=mode=='zombie'?('Você morreu na onda '+zWave+' · Kills: '+kills):('Você morreu no round '+round+' · Kills: '+kills+' · Headshots: '+hs);
@@ -1905,7 +1928,7 @@ function kill(b,head,kn){b.dead=true;b.t=0;kills++;if(head)hs++;if(b.g&&b.g.rig&
  if(mode=='zombie'){money=Math.min(30000,money+(b.money||100));feed((b.type=='cao'?'Cachorro zumbi':'Zumbi '+zTypeName(b.type))+' eliminado'+(head?' 🎯':''))}
  else if(mode=='snd'){money=Math.min(30000,money+250);feed(kn?'Você esfaqueou um terrorista'+kn2+' 🔪':'Você eliminou um terrorista'+kn2+(head?' 🎯 HEADSHOT':''))}
  else{money=Math.min(16000,money+(kn?600:300)+(head?100:0));feed(kn?'Você esfaqueou um terrorista'+kn2+' 🔪':'Você eliminou um terrorista'+kn2+(head?' 🎯 HEADSHOT':''))}
- sfxKill(b,head)}
+ sfxKill(b,head);if(mode=='dmb'&&kills>=DMB_GOAL)dmbEnd(true)}
 
 // ---------- Tiro ----------
 // ---------- Animação de recarga (primeira pessoa) ----------
@@ -1958,7 +1981,7 @@ function shoot(){const w=gw();
   const h=rc.intersectObjects(targets(),false)[0];
   if(n==0)firstHitPt=h?h.point:mp.clone().addScaledVector(rc.ray.direction,40);
   if(h){const o=h.object,b=o.userData.bot;
-   if(b&&b.remote){const head=o.userData.m==4,q=MPH[b.pid]||(MPH[b.pid]={d:0,head:false});q.d+=w.dmg*o.userData.m*(w.pel>1?Math.max(.2,1-h.distance/22):1);q.head=q.head||head;hm=1;blood(h.point);if(n==0)sfxHit(head)}
+   if(b&&b.remote){const head=o.userData.m==4,q=MP.mode!='dm'?{d:0}:(MPH[b.pid]||(MPH[b.pid]={d:0,head:false}));q.d+=w.dmg*o.userData.m*(w.pel>1?Math.max(.2,1-h.distance/22):1);q.head=q.head||head;hm=1;blood(h.point);if(n==0)sfxHit(head)}
    else if(b){const head=o.userData.m==4;b.hp-=w.dmg*o.userData.m*(w.pel>1?Math.max(.2,1-h.distance/22):1);b.alert=8;b.tx=P.x;b.tz=P.z;hm=1;blood(h.point);
     if(b.hp<=0&&!b.dead)kill(b,head);else if(n==0)sfxHit(head)}
    else if(o.userData.barrel&&mode!='mp'){hitBarrel(o.userData.barrel);sparks(h.point,h.face?h.face.normal:null,5,0xffaa33)}
@@ -1968,7 +1991,7 @@ function shoot(){const w=gw();
  if(ammo<=0)startReload()}
 function stab(){kAnim=1;kSpin=0;sfxSwish();cam.updateMatrixWorld();rc.far=2.6;rc.setFromCamera(new THREE.Vector2(0,0),cam);
  const h=rc.intersectObjects(targets(),false)[0];
- if(h){const b=h.object.userData.bot;if(b&&b.remote){MPH[b.pid]={d:55,head:false};mpFlush('knife');hm=1;blood(h.point);sfxKnifeHit()}else if(b){b.hp-=55;b.alert=8;b.tx=P.x;b.tz=P.z;hm=1;blood(h.point);if(b.hp<=0&&!b.dead)kill(b,false,true);else sfxKnifeHit()}else if(h.object.userData.barrel&&mode!='mp'){hitBarrel(h.object.userData.barrel);sparks(h.point,h.face?h.face.normal:null,4,0xffaa33)}else if(h.face){sparks(h.point,h.face.normal,3,0xcccccc);bulletHole(h.point,h.face.normal)}}}
+ if(h){const b=h.object.userData.bot;if(b&&b.remote){if(MP.mode=='dm'){MPH[b.pid]={d:55,head:false};mpFlush('knife')}hm=1;blood(h.point);sfxKnifeHit()}else if(b){b.hp-=55;b.alert=8;b.tx=P.x;b.tz=P.z;hm=1;blood(h.point);if(b.hp<=0&&!b.dead)kill(b,false,true);else sfxKnifeHit()}else if(h.object.userData.barrel&&mode!='mp'){hitBarrel(h.object.userData.barrel);sparks(h.point,h.face?h.face.normal:null,4,0xffaa33)}else if(h.face){sparks(h.point,h.face.normal,3,0xcccccc);bulletHole(h.point,h.face.normal)}}}
 // ---- Navegação por caminho (A* em grade de 0,5 m) para contornar a casa, muros e caixas ----
 const NAVG=.5,NAVN=Math.round(62/NAVG)+1,NAVO=-31;let navB=null;
 function navInit(){navB=new Uint8Array(NAVN*NAVN);for(let i=0;i<NAVN;i++)for(let j=0;j<NAVN;j++)navB[i*NAVN+j]=hitsBox(NAVO+i*NAVG,NAVO+j*NAVG,0,.5)?1:0}
@@ -2104,14 +2127,17 @@ function sndRoundWin(reward,text){sndWin++;money=Math.min(30000,money+reward);fe
  if(sndWin>=6){matchEnd(true);return}sndRoundTransition()}
 function sndRoundLose(text){sndLoss++;feed((text||'Rodada perdida')+' 💀');sfxLose();
  if(sndLoss>=6){matchEnd(false);return}sndRoundTransition()}
-function matchEnd(win){state='dead';playing=false;needNew=true;if(win)sfxWin();else sfxDeath();if(document.exitPointerLock)document.exitPointerLock();
+function matchEnd(win){if(MP.inGame){mpReset();$('mp').style.display='none'}state='dead';playing=false;needNew=true;if(win)sfxWin();else sfxDeath();if(document.exitPointerLock)document.exitPointerLock();
  $('msg').textContent=(win?'🏆 VITÓRIA! ':'DERROTA! ')+'Placar final '+sndWin+' x '+sndLoss+' · Kills: '+kills;showMenu(true)}
 function update(dt){
- const idle=mode=='mp'&&(mpDead||shopOpen||mpPaused);if(mode=='mp')mpFrame(dt);
+ const idle=(MP.inGame&&(mpDead||shopOpen||mpPaused))||(mode=='dmb'&&dmbDead);if(MP.inGame)mpFrame(dt);
+ if(mode=='dmb'){if(dmbDead){dmbRt-=dt;$('pmsg').textContent='ELIMINADO · RENASCENDO EM '+Math.ceil(Math.max(0,dmbRt));if(dmbRt<=0&&playing)dmbRespawn()}
+  if(state=='fight'){if(alive()<DMB_BOTS){dmbT+=dt;if(dmbT>=2.5){dmbT=0;spawnBot()}}else dmbT=0}}
  if(state=='between'){roundT-=dt;if(roundT<=0){round++;
    if(mode=='surv'){const n=Math.min(2+round,8);for(let i=0;i<n;i++)spawnBot();banner('ROUND '+round)}
    else if(mode=='snd'){for(let i=0;i<5;i++)spawnBot();banner('RODADA '+round+' · PLANTE NO SITE A/B (segure E)')}
    else if(mode=='zombie'){zWave++;spawnWave();zPickTaken=false;banner('ONDA '+zWave)}
+   else if(mode=='dmb'){for(let i=0;i<DMB_BOTS;i++)spawnBot();banner('MATA-MATA · META '+DMB_GOAL+' ABATES')}
    state='fight'}}
  else if(state=='fight'&&alive()==0){
   if(mode=='surv'){state='between';roundT=3.5;P.hp=Math.min(100,P.hp+25);money=Math.min(16000,money+1000);refill();banner('ROUND VENCIDO · +$1000 · B = LOJA')}
@@ -2122,7 +2148,7 @@ function update(dt){
  const sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
  let mx=idle?0:(keys.KeyD?1:0)-(keys.KeyA?1:0),mz=idle?0:(keys.KeyS?1:0)-(keys.KeyW?1:0);const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
  crouch=!!(keys.ControlLeft||keys.ControlRight||keys.KeyC);silent=crouch||!!keys.ShiftLeft;
- P.eye+=((mpDead?.4:crouch?1.15:1.7)-P.eye)*Math.min(1,dt*12);
+ P.eye+=(((mpDead||dmbDead)?.4:crouch?1.15:1.7)-P.eye)*Math.min(1,dt*12);
  const heavyEq=wpn==1&&inv.pri&&W[inv.pri].heavy;
  const spd=(crouch?2.6:keys.ShiftLeft?3:6.2)*(wpn==3?1.35:1)*(heavyEq?.6:1),k=Math.min(1,dt*(P.ground?14:3));
  P.vx+=((cs*mx+sn*mz)*spd-P.vx)*k;P.vz+=((-sn*mx+cs*mz)*spd-P.vz)*k;
@@ -2269,7 +2295,7 @@ function update(dt){
  // HUD
  $('hp').textContent='❤ '+Math.ceil(P.hp)+(P.armor>0?' 🛡'+Math.ceil(P.armor)+(P.helmet?'⛑':''):'')+(MEDM(mode)&&medkits>0?' ✚'+medkits:'');$('am').innerHTML=hamOn?'<small>MARTELO · ARAME</small> $'+WIRE_COST:wpn==3?'FACA':'<small>'+gw().n+'</small> '+ammo+' <small>/ '+reserve+(reloading>0?' · RECARREGANDO':'')+'</small>';
  $('st').textContent=(['','[1] '+(inv.pri?W[inv.pri].n:'—'),'[2] '+W[inv.sec].n,'[3] FACA'][wpn])+' · $'+money+' · B LOJA'+(crouch?' · AGACHADO':keys.ShiftLeft?' · ANDANDO':'')+(silent?' · SILENCIOSO':'');$('ch').style.display=wpn!=3&&!scoped?'block':'none';$('scope').style.display=scoped?'block':'none';
- if(mode=='mp')$('top').textContent=mpTop();else if(mode=='snd')$('top').textContent='RODADA '+round+' · PLACAR '+sndWin+'x'+sndLoss+' · INIMIGOS '+alive()+(bomb?' · 💣 '+Math.max(0,Math.ceil(bomb.timer))+'s':'');
+ if(mode=='mp')$('top').textContent=mpTop();else if(mode=='dmb')$('top').textContent='MATA-MATA · ABATES '+kills+'/'+DMB_GOAL+' · MORTES '+dmbDeaths+'/'+DMB_GOAL+' · HS '+hs;else if(mode=='snd')$('top').textContent='RODADA '+round+' · PLACAR '+sndWin+'x'+sndLoss+' · INIMIGOS '+alive()+(bomb?' · 💣 '+Math.max(0,Math.ceil(bomb.timer))+'s':'');
  else if(mode=='zombie'){$('top').textContent=state=='between'?('HORDA EM '+Math.ceil(Math.max(0,roundT))+'s · ONDA '+(zWave+1)+' · KILLS '+kills):('ONDA '+zWave+' · KILLS '+kills+' · ZUMBIS '+alive());$('basehp').style.display='none';$('skipw').style.display=(state=='between'&&roundT>.3)?'block':'none'}
  else $('top').textContent='ROUND '+round+'  ·  KILLS '+kills+'  ·  HS '+hs+'  ·  INIMIGOS '+alive();
  $('hm').style.opacity=hm;$('dmg').style.opacity=dmgA;$('ch').style.setProperty('--g',(4+(heat*.035+Math.hypot(P.vx,P.vz)*.004+(P.ground?0:.06))*260)+'px');
@@ -2296,7 +2322,8 @@ function radar(){const c=rctx,S=520,k=S/64;c.setTransform(1,0,0,1,0,0);c.clearRe
 const MPX=6,MPK=['rifle','smg','shotgun','sniper'],MPH={};
 const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
 const MP={host:false,id:-1,name:'',pl:{},peers:{},up:null,st:{},lim:15,started:false,inGame:false,joined:false,ending:false,left:false,pend:null,nid:1,last:null,tick:0,sbT:0,deadBy:''};
-let mpDead=false,mpRt=0,mpInv=0,mpPaused=false;
+let mpDead=false,mpRt=0,mpInv=0,mpPaused=false,mpSel='dm';
+const MPN={dm:'MATA-MATA',zombie:'MODO ZUMBI',snd:'PROCURA E DESTRUIÇÃO'};
 // --- convite compacto (JSON → deflate → base64url) ---
 const mpB64=u=>{let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const mpUn64=t=>{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u};
@@ -2327,6 +2354,9 @@ function mpClosed(p){if(p.gone)return;p.gone=true;
  if(MP.host){delete MP.peers[p.id];const pl=MP.pl[p.id];if(pl){delete MP.pl[p.id];delete MP.st[p.id];const m={t:'leave',id:p.id,n:pl.n};hostRoute(0,m);mpHandle(m,0)}}
  else mpAbort('Conexão com o anfitrião perdida.')}
 function mpAbort(msg){const was=MP.inGame;mpReset();$('mp').style.display='none';if(was||playing){playing=false;state='dead';needNew=true;if(document.exitPointerLock)document.exitPointerLock()}showMenu(true);$('msg').textContent=msg}
+function leaveGame(){if(MP.inGame){mpLeave();return}
+ playing=false;state='dead';needNew=true;down=false;edge=false;scoped=false;medT=0;$('medbar').style.display='none';if(hamOn)hamOff();
+ if(document.exitPointerLock)document.exitPointerLock();showMenu(true);$('msg').textContent=''}
 function mpLeave(){const was=MP.inGame;mpReset();$('mp').style.display='none';if(was||playing){playing=false;state='dead';needNew=true;if(document.exitPointerLock)document.exitPointerLock()}showMenu(true);$('msg').textContent=''}
 // --- roteamento de mensagens ---
 function mpIn(p,m){if(MP.host)hostIn(p.id,m);else mpHandle(m,0)}
@@ -2337,7 +2367,7 @@ function hostRoute(from,m){   // m.to = destino único; sem 'to' = todos, menos 
 function hostIn(from,m){const p=MP.peers[from];if(!p)return;
  if(m.t=='hi'){if(MP.pl[from])return;
   if(MP.started||Object.keys(MP.pl).length>=MPX){sendTo(p,{t:'full',s:MP.started?1:0},'ev');setTimeout(()=>{p.gone=true;try{p.pc.close()}catch(_){}delete MP.peers[from]},400);return}
-  MP.pl[from]={id:from,n:mpClean(m.n),k:0,d:0};sendTo(p,{t:'welcome',id:from,pl:MP.pl,lim:MP.lim},'ev');
+  MP.pl[from]={id:from,n:mpClean(m.n),k:0,d:0};sendTo(p,{t:'welcome',id:from,pl:MP.pl,lim:MP.lim,md:MP.mode||'dm'},'ev');
   hostRoute(from,{t:'join',p:MP.pl[from]});mpHandle({t:'join',p:MP.pl[from]},0);return}
  if(!MP.pl[from])return;
  if(m.t=='s'){if(Array.isArray(m.a)&&m.a.length>=9){p.in=true;m.a[0]=from;MP.st[from]={a:m.a}}return}
@@ -2351,11 +2381,11 @@ function hostDead(m){if(!MP.host||!MP.inGame||MP.ending)return;const V=MP.pl[m.v
 function hostEnd(w){if(MP.ending)return;MP.ending=true;const m={t:'end',w,sc:mpSc()};setTimeout(()=>{hostRoute(0,m);mpEnd(m)},1200)}
 function mpClean(n){return String(n||'').replace(/[<>&"'`]/g,'').trim().slice(0,14)||'Jogador'}
 function mpHandle(m,from){switch(m.t){
- case 'welcome':MP.id=m.id;MP.pl=m.pl;MP.lim=m.lim;MP.joined=true;mpStat('Conectado! Aguarde o anfitrião iniciar a partida.');mpShowRoom();break;
+ case 'welcome':MP.id=m.id;MP.pl=m.pl;MP.lim=m.lim;MP.mode=m.md||'dm';MP.joined=true;mpStat('Conectado! Aguarde o anfitrião iniciar a partida.');mpShowRoom();break;
  case 'join':MP.pl[m.p.id]=m.p;mpShowRoom();break;
  case 'leave':{delete MP.pl[m.id];const i=rem.findIndex(q=>q.pid==m.id);if(i>=0){scene.remove(rem[i].root);rem.splice(i,1)}if(MP.inGame)feed((m.n||'Jogador')+' saiu da partida');
   mpShowRoom();if(MP.host&&MP.inGame&&Object.keys(MP.pl).length<2)hostEnd(0);break}
- case 'start':MP.started=true;MP.lim=m.lim;MP.pl=m.pl;mpStat('A partida começou!');mpShowRoom();break;
+ case 'start':MP.started=true;MP.lim=m.lim;MP.pl=m.pl;MP.mode=m.md||MP.mode||'dm';mpStat('A partida começou!');mpShowRoom();break;
  case 'full':mpAbort(m.s?'A partida já começou.':'A sala está cheia.');break;
  case 'S':if(MP.inGame)mpApplyS(m.p);break;
  case 'sh':if(MP.inGame)mpShotFx(m);break;
@@ -2363,8 +2393,8 @@ function mpHandle(m,from){switch(m.t){
  case 'feed':if(MP.inGame)mpFeed(m);break;
  case 'end':mpEnd(m);break}}
 // --- partida ---
-function mpGo(){$('mp').style.display='none';mpClearRem();MP.inGame=true;MP.ending=false;MP.tick=0;mpDead=false;mpPaused=false;needNew=true;enter('mp')}
-function mpHostStart(){if(!MP.host||MP.started||Object.keys(MP.pl).length<2)return;MP.started=true;for(const id in MP.pl){MP.pl[id].k=0;MP.pl[id].d=0}hostRoute(0,{t:'start',lim:MP.lim,pl:MP.pl});mpGo()}
+function mpGo(){$('mp').style.display='none';mpClearRem();MP.inGame=true;MP.ending=false;MP.tick=0;mpDead=false;mpPaused=false;needNew=true;enter(MP.mode=='zombie'?'zombie':MP.mode=='snd'?'snd':'mp')}
+function mpHostStart(){if(!MP.host||MP.started||Object.keys(MP.pl).length<2)return;MP.started=true;for(const id in MP.pl){MP.pl[id].k=0;MP.pl[id].d=0}hostRoute(0,{t:'start',lim:MP.lim,md:MP.mode||'dm',pl:MP.pl});mpGo()}
 function mpNew(){const s=SP[Math.max(0,MP.id)%SP.length];Object.assign(P,{x:s[0],z:s[1],yaw:Math.atan2(s[0],s[1])});state='fight';money=3000;mpDead=false;mpInv=2;MP.last=null;$('pmsg').style.display='none'}
 function mpRespawn(){mpDead=false;let best=SP[0],bd=-1;
  for(const s of SP){let md=1e9;for(const r of rem)if(!r.dead&&r.init)md=Math.min(md,Math.hypot(s[0]-r.root.position.x,s[1]-r.root.position.z));if(md>bd){bd=md;best=s}}   // renasce no ponto mais longe dos inimigos
@@ -2420,15 +2450,15 @@ function mpFrame(dt){if(mpInv>0)mpInv-=dt;
  if(mpDead){mpRt-=dt;$('pmsg').textContent='ELIMINADO'+(MP.deadBy?' POR '+MP.deadBy.toUpperCase():'')+' · RENASCENDO EM '+Math.ceil(Math.max(0,mpRt));if(mpRt<=0)mpRespawn()}
  mpAvatars(dt);mpNet(dt);MP.sbT-=dt;if(MP.sbT<=0){MP.sbT=.3;if($('sb').style.display=='block')mpSb()}}
 function mpTop(){const a=Object.values(MP.pl).sort((x,y)=>(y.k||0)-(x.k||0)||(x.d||0)-(y.d||0)),me=MP.pl[MP.id]||{k:0,d:0};
- return 'MATA-MATA · META '+MP.lim+' · '+a.slice(0,3).map(p=>(p.id==MP.id?'Você':p.n)+' '+(p.k||0)).join(' · ')+' · K/D '+(me.k||0)+'/'+(me.d||0)+' · [TAB] placar'}
+ return 'MATA-MATA · K/D '+(me.k||0)+'/'+(me.d||0)}
 function mpSb(){const a=Object.values(MP.pl).sort((x,y)=>(y.k||0)-(x.k||0)||(x.d||0)-(y.d||0)),S=$('sb');S.textContent='';
  const row=(n,k,d,hl)=>{const r=document.createElement('div');if(hl)r.style.color='#ffd24a';for(const t of[n,k,d]){const s=document.createElement('span');s.textContent=t;r.appendChild(s)}S.appendChild(r)};
  row('JOGADOR','K','D');for(const p of a)row(p.n+(p.id==MP.id?' (você)':''),p.k||0,p.d||0,p.id==MP.id)}
 // --- interface da sala ---
-function mpView(id){for(const v of document.querySelectorAll('.mpv'))v.style.display=v.id==id?'block':'none'}
+function mpView(id){for(const v of document.querySelectorAll('.mpv'))v.style.display=v.id==id?'block':'none';$('mpTitle').innerHTML=id=='mpBotView'?'TREI<b>NO</b>':'MULTI<b>PLAYER</b>'}
 function mpStat(t){$('mpSt').textContent=t||''}
 function mpName(){const n=mpClean($('mpName').value);try{localStorage.setItem('cfname',n)}catch(e){}return n}
-function mpShowRoom(){const ids=Object.keys(MP.pl).map(Number).sort((a,b)=>a-b),R=$('mpRoster');R.textContent='';
+function mpShowRoom(){$('mpMode').textContent=(MP.host||MP.joined)?'MODO: '+(MPN[MP.mode||'dm']||''):'';const ids=Object.keys(MP.pl).map(Number).sort((a,b)=>a-b),R=$('mpRoster');R.textContent='';
  for(const id of ids){const p=MP.pl[id],d=document.createElement('div'),a=document.createElement('span'),b=document.createElement('span');a.textContent=p.n+(id==MP.id?' (você)':'')+(id==0?' ★':'');b.textContent=(p.k||p.d)?(p.k||0)+' / '+(p.d||0):'';d.appendChild(a);d.appendChild(b);R.appendChild(d)}
  $('mpHostBox').style.display=MP.host&&ids.length<MPX&&!MP.started?'block':'none';
  $('mpGuestBox').style.display=!MP.host&&!MP.joined?'block':'none';
@@ -2440,13 +2470,18 @@ function mpCopy(el){el.focus();el.select();try{if(navigator.clipboard)navigator.
 $('mpName').value=(()=>{try{return localStorage.getItem('cfname')}catch(e){return ''}})()||('Jogador'+(100+Math.random()*900|0));
 $('bmp').onclick=()=>{$('mp').style.display='flex';mpView('mpHome')};
 $('mpBack').onclick=()=>{$('mp').style.display='none'};
-$('mpBotB').onclick=()=>{$('mp').style.display='none';enter('snd')};
-$('mpHostB').onclick=async()=>{mpReset();MP.host=true;MP.id=0;MP.name=mpName();MP.pl={0:{id:0,n:MP.name,k:0,d:0}};mpView('mpRoom');mpStat('');mpShowRoom();await mpNextInvite()};
+const TBD={dmb:'Mata-mata: você contra 5 bots que renascem. Quem chegar a 15 abates primeiro vence (os bots somam quando você morre). Você renasce após 3 s.',snd:'Procura e Destruição: 5 inimigos por rodada, melhor de 6. Plante a bomba no site A ou B segurando E.',surv:'Sobrevivência: elimine todos os inimigos a cada rodada; eles ficam mais numerosos e precisos.',zombie:'Modo Zumbi: ondas de zumbis, loja e arame farpado. Sobreviva o máximo que puder.'};
+$('mpBotB').onclick=()=>mpView('mpBotView');
+$('tbBack').onclick=()=>mpView('mpHome');
+document.querySelectorAll('#mpBotView .tb').forEach(b=>{b.onclick=()=>{$('mp').style.display='none';needNew=true;enter(b.dataset.m)};
+ ['mouseenter','focus'].forEach(ev=>b.addEventListener(ev,()=>{$('tbDesc').textContent=TBD[b.dataset.m]||''}))});
+document.querySelectorAll('#mpModes .mm').forEach(b=>b.onclick=()=>{mpSel=b.dataset.m;document.querySelectorAll('#mpModes .mm').forEach(x=>x.classList.toggle('on',x==b))});
+$('mpHostB').onclick=async()=>{mpReset();MP.mode=mpSel;MP.host=true;MP.id=0;MP.name=mpName();MP.pl={0:{id:0,n:MP.name,k:0,d:0}};mpView('mpRoom');mpStat('');mpShowRoom();await mpNextInvite()};
 $('mpJoinB').onclick=()=>{mpReset();MP.host=false;MP.name=mpName();$('mpInvIn').value='';$('mpAnsOut').value='';mpView('mpRoom');mpStat('');mpShowRoom()};
 $('mpCopyInv').onclick=()=>mpCopy($('mpInv'));$('mpCopyAns').onclick=()=>mpCopy($('mpAnsOut'));
 $('mpConn').onclick=async()=>{try{await mpHostAccept($('mpAns').value);$('mpAns').value='';mpStat('Conectando... o jogador aparece na lista em instantes.');await mpNextInvite()}catch(e){mpStat('Resposta inválida: '+(e&&e.message||e))}};
 $('mpGen').onclick=async()=>{mpStat('Gerando resposta...');try{$('mpAnsOut').value=await mpGuestJoin($('mpInvIn').value);mpStat('Envie a resposta ao anfitrião e aguarde a conexão.')}catch(e){mpStat('Convite inválido: '+(e&&e.message||e))}};
-$('mpStart').onclick=mpHostStart;$('mpEnter').onclick=mpGo;$('mpLeaveB').onclick=mpLeave;$('bleave').onclick=mpLeave;
+$('mpStart').onclick=mpHostStart;$('mpEnter').onclick=mpGo;$('mpLeaveB').onclick=mpLeave;$('bleave').onclick=leaveGame;
 addEventListener('keydown',e=>{if(e.code=='Tab'&&MP.inGame){e.preventDefault();if(!e.repeat){mpSb();$('sb').style.display='block'}}});
 addEventListener('keyup',e=>{if(e.code=='Tab')$('sb').style.display='none'});
 addEventListener('blur',()=>{$('sb').style.display='none'});
@@ -2456,15 +2491,16 @@ addEventListener('blur',()=>{$('sb').style.display='none'});
 function newGame(m){mode=m||mode;siteDecals.forEach(d=>d.visible=mode=='snd');setEnv(mode=='zombie');for(const b of bots)scene.remove(b.g);bots.length=0;
  for(const q of goos)scene.remove(q.m);goos.length=0;
  for(const w of wires)scene.remove(w.m);wires.length=0;hamOn=false;hamGhost.visible=false;
- respawnBarrels();Object.assign(P,{x:0,y:0,z:mode=='zombie'?0:26,vx:0,vz:0,vy:0,yaw:0,pitch:0,hp:100,armor:0,helmet:false,eye:1.7,ground:true});
+ respawnBarrels();Object.assign(P,{x:MP.inGame&&mode!='mp'?(mode=='zombie'?(Math.max(0,MP.id)%3-1)*1.6:(Math.max(0,MP.id)-2.5)*1.2):0,y:0,z:mode=='zombie'?(MP.inGame&&MP.id>2?1.4:MP.inGame?-.4:0):26,vx:0,vz:0,vy:0,yaw:0,pitch:0,hp:100,armor:0,helmet:false,eye:1.7,ground:true});
  inv={pri:null,sec:'glock'};mags={glock:{ammo:W.glock.mag,reserve:W.glock.res}};wpn=2;scoped=false;equip();reloading=0;kills=0;hs=0;round=0;medkits=0;medT=0;$('medbar').style.display='none';
- bomb=null;planting=0;hideBombModel();sndWin=0;sndLoss=0;zWave=0;
+ bomb=null;planting=0;hideBombModel();sndWin=0;sndLoss=0;zWave=0;dmbDead=false;dmbDeaths=0;dmbT=0;
  $('plant').style.display='none';$('pmsg').style.display='none';
  if(mode=='zombie'){money=ZMONEY0;setupBase();$('basehp').style.display='none'}
  else{$('basehp').style.display='none';if(mode=='snd')money=1000;else money=3000}
  state='between';roundT=mode=='zombie'?ZPREP:2;if(mode=='mp')mpNew();
- banner(mode=='mp'?('MATA-MATA · META '+MP.lim+' ABATES · B = LOJA'):mode=='zombie'?'PREPARE-SE · A HORDA CHEGA EM '+ZPREP+'s':mode=='snd'?'PREPARE-SE · MELHOR DE 6 · B = LOJA':'PREPARE-SE · B = LOJA')}
-function showMenu(fresh){hamGhost.visible=false;$('bleave').style.display=(!fresh&&mode=='mp'&&MP.inGame)?'flex':'none';$('modes').style.display=fresh?'flex':'none';$('go').style.display=fresh?'none':'flex';$('menu').style.display='flex';document.body.classList.add('inmenu');ambDuck();setSide(fresh?'surv':'go')}
+ banner(mode=='dmb'?('MATA-MATA vs BOTS · META '+DMB_GOAL+' ABATES · B = LOJA'):mode=='mp'?('MATA-MATA · META '+MP.lim+' ABATES · B = LOJA'):mode=='zombie'?'PREPARE-SE · A HORDA CHEGA EM '+ZPREP+'s':mode=='snd'?'PREPARE-SE · MELHOR DE 6 · B = LOJA':'PREPARE-SE · B = LOJA')}
+let menuFresh=true;
+function showMenu(fresh){hamGhost.visible=false;menuFresh=fresh;$('bleave').style.display='none';$('bexit').querySelector('.lb').textContent=fresh?'SAIR':'VOLTAR AO MENU';$('modes').style.display=fresh?'flex':'none';$('go').style.display=fresh?'none':'flex';$('menu').style.display='flex';document.body.classList.add('inmenu');ambDuck();setSide(fresh?'surv':'go')}
 function refill(){save();for(const id of [inv.pri,inv.sec])if(id&&mags[id])mags[id].reserve=W[id].res;equip()}
 function resume(){$('shop').style.display='none';document.body.classList.remove('inshop');shopOpen=false;playing=true;try{const r=cvs.requestPointerLock();if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 // ---------- Loja (estilo do menu) + vitrine 3D com a arma girando ----------
@@ -2542,7 +2578,7 @@ function buyMed(){if(!MEDM(mode)||medkits>=MEDMAX||money<MEDPRICE)return;money-=
 function buyAmmo(slot){const id=slot==1?inv.pri:inv.sec;if(!id)return;const w=W[id];const price=Math.round(w.res*1.8);
  const m=mags[id];if(!m||money<price||m.reserve>=w.res)return;money-=price;m.reserve=w.res;if(wpn==slot)reserve=m.reserve;sfxBuy();renderShop()}
 function toggleShop(){if(shopOpen){resume();return}
- if(!playing||state=='dead')return;shopOpen=true;if(mode!='mp')playing=false;down=false;edge=false;scoped=false;document.body.classList.add('inshop');renderShop();$('shop').style.display='flex';if(document.exitPointerLock)document.exitPointerLock()}
+ if(!playing||state=='dead')return;shopOpen=true;if(!MP.inGame)playing=false;down=false;edge=false;scoped=false;document.body.classList.add('inshop');renderShop();$('shop').style.display='flex';if(document.exitPointerLock)document.exitPointerLock()}
 $('shl').onclick=e=>{const c=e.target.closest('.opt');if(!c)return;shSel=c.dataset.key;renderShop()};
 $('shBuy').onclick=()=>{const it=shAll().find(i=>i.key==shSel);if(!it||!it.ok)return;if(it.kind=='w')buy(it.id);else if(it.kind=='e')buyEquip(it.id);else if(it.kind=='m')buyMed();else buyAmmo(it.id)};
 $('shx').onclick=()=>{if(shopOpen)resume()};
@@ -2554,17 +2590,17 @@ function enter(m){if(needNew){newGame(m||mode);needNew=false}
  $('menu').style.display='none';document.body.classList.remove('inmenu');playing=true;mpPaused=false;
  try{const r=cvs.requestPointerLock();if(r&&r.catch)r.catch(()=>{nolock=true})}catch(e){nolock=true}}
 function pause(){if(!playing||shopOpen||(mode=='mp'&&mpPaused))return;
- if(mode=='mp'&&MP.inGame){mpPaused=true;down=false;edge=false;scoped=false;$('msg').textContent='A partida online continua rodando.';showMenu(false);if(document.exitPointerLock)document.exitPointerLock();return}
+ if(MP.inGame){mpPaused=true;down=false;edge=false;scoped=false;$('msg').textContent='A partida online continua rodando.';showMenu(false);if(document.exitPointerLock)document.exitPointerLock();return}
  playing=false;down=false;edge=false;scoped=false;$('msg').textContent='Jogo pausado.';showMenu(false);if(document.exitPointerLock)document.exitPointerLock()}
 $('go').onclick=()=>enter();
-const SIDE={surv:['SOBREVIVA','AO CAOS','Elimine todos os inimigos a cada rodada.'],zombie:['DEFENDA','A BASE','Ondas de zumbis. Resista.'],snd:['JOGUE','COM AMIGOS','Crie uma sala e jogue mata-mata online, ou treine contra bots com bomba.'],
-leave:['SAIR','DA PARTIDA','Deixar a sala e voltar ao menu.'],cfg:['AJUSTE','SEU JOGO','Sensibilidade, visão e controles.'],exit:['ATÉ','A PRÓXIMA','Fechar o jogo.'],go:['VOLTE','À AÇÃO','Continue de onde parou.']};
-function setSide(k){const s=SIDE[k];if(!s)return;$('sideT').innerHTML=s[0]+'<b>'+s[1]+'</b>';$('sideD').textContent=s[2];document.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.k===k))}
+const SIDE={surv:['SOBREVIVA','AO CAOS','Elimine todos os inimigos a cada rodada.'],zombie:['DEFENDA','A BASE','Ondas de zumbis. Resista.'],snd:['JOGUE','COM AMIGOS','Crie uma sala e jogue mata-mata online, ou treine contra bots escolhendo o modo.'],
+leave:['SAIR','DA PARTIDA','Encerrar a partida atual (ou sair da sala) e voltar ao menu.'],cfg:['AJUSTE','SEU JOGO','Sensibilidade, visão e controles.'],exit:['ATÉ','A PRÓXIMA','Fechar o jogo.'],go:['VOLTE','À AÇÃO','Continue de onde parou.']};
+function setSide(k){const s=(k=='exit'&&!menuFresh)?['VOLTE','AO MENU','Encerrar a partida atual (ou sair da sala) e voltar ao menu principal.']:SIDE[k];if(!s)return;$('sideT').innerHTML=s[0]+'<b>'+s[1]+'</b>';$('sideD').textContent=s[2];document.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.dataset.k===k))}
 document.querySelectorAll('.opt').forEach(o=>['mouseenter','focus'].forEach(ev=>o.addEventListener(ev,()=>setSide(o.dataset.k))));
 document.querySelectorAll('.mbtn').forEach(btn=>btn.addEventListener('click',()=>enter(btn.dataset.m)));
 $('bcfg').onclick=()=>$('cfgm').classList.add('show');
 $('cfgx').onclick=()=>$('cfgm').classList.remove('show');
-$('bexit').onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}window.close();setTimeout(()=>{$('msg').textContent='Você já pode fechar esta aba.'},250)};
+$('bexit').onclick=()=>{if(!menuFresh){leaveGame();return}try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}window.close();setTimeout(()=>{$('msg').textContent='Você já pode fechar esta aba.'},250)};
 showMenu(true);
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cvs;if(!locked&&playing&&!nolock)pause()});
 document.addEventListener('pointerlockerror',()=>{nolock=true});
