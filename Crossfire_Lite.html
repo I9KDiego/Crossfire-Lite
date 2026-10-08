@@ -2930,7 +2930,8 @@ function zHit(m){const b=bots.find(q=>q.zid===m.id);if(!b||b.dead||b.net)return;
 const MPX=6,MPK=['rifle','smg','shotgun','sniper'],MPH={};
 const WKIND={rifle:'rifle',heavy:'rifle',shotgun:'shotgun',sniper:'sniper',glock:'pistol',deagle:'pistol',knife:'knife',ham:'hammer'};   // item empunhado → modelo na mão do avatar
 const mpWk=()=>hamOn?'ham':wpn==3?'knife':((gw()||{}).id||'glock');
-const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun.cloudflare.com:3478','stun:global.stun.twilio.com:3478']},
+ {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}],iceCandidatePoolSize:2};   // TURN público gratuito = plano de reserva quando a conexão direta (P2P) é bloqueada pelo roteador/operadora
 const MP={host:false,id:-1,name:'',pl:{},peers:{},up:null,st:{},lim:15,started:false,inGame:false,joined:false,ending:false,left:false,pend:null,nid:1,last:null,tick:0,sbT:0,deadBy:''};
 let mpDead=false,mpRt=0,mpInv=0,mpPaused=false,mpSel='dm';
 const MPN={dm:'MATA-MATA',zombie:'MODO ZUMBI',snd:'PROCURA E DESTRUIÇÃO'};
@@ -2938,11 +2939,12 @@ const MPN={dm:'MATA-MATA',zombie:'MODO ZUMBI',snd:'PROCURA E DESTRUIÇÃO'};
 const mpB64=u=>{let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const mpUn64=t=>{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u};
 async function mpPipe(u8,S){return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new S('deflate-raw'))).arrayBuffer())}
-async function mpEnc(d){const raw=new TextEncoder().encode(JSON.stringify({t:d.type,s:d.sdp}));
+const mpSlim=sdp=>sdp.split(/\r?\n/).filter(l=>!(l.indexOf('a=candidate')==0&&/ tcp /i.test(l))).join('\r\n');
+async function mpEnc(d){const raw=new TextEncoder().encode(JSON.stringify({t:d.type,s:mpSlim(d.sdp)}));
  try{if(typeof CompressionStream!='undefined')return 'Z'+mpB64(await mpPipe(raw,CompressionStream))}catch(e){}return 'R'+mpB64(raw)}
 async function mpDec(code){code=(code||'').replace(/\s+/g,'');if(code.length<20)throw new Error('código vazio');const k=code[0],u=mpUn64(code.slice(1));
  const raw=k=='Z'?await mpPipe(u,DecompressionStream):u;const o=JSON.parse(new TextDecoder().decode(raw));if(!o.t||!o.s)throw new Error('código inválido');return{type:o.t,sdp:o.s}}
-function mpWaitIce(pc){return new Promise(res=>{if(pc.iceGatheringState=='complete')return res();const f=()=>{if(pc.iceGatheringState=='complete'){pc.removeEventListener('icegatheringstatechange',f);res()}};pc.addEventListener('icegatheringstatechange',f);setTimeout(res,5000)})}
+function mpWaitIce(pc){return new Promise(res=>{if(pc.iceGatheringState=='complete')return res();const f=()=>{if(pc.iceGatheringState=='complete'){pc.removeEventListener('icegatheringstatechange',f);res()}};pc.addEventListener('icegatheringstatechange',f);setTimeout(res,6500)})}
 // --- conexões ---
 function mpPeer(pc,id){const p={id,pc,gone:false,in:false,last:performance.now()};
  p.st=pc.createDataChannel('st',{negotiated:true,id:0,ordered:false,maxRetransmits:0});   // estado: pode perder pacotes
@@ -2950,7 +2952,9 @@ function mpPeer(pc,id){const p={id,pc,gone:false,in:false,last:performance.now()
  p.st.onmessage=p.ev.onmessage=e=>{p.last=performance.now();let m;try{m=JSON.parse(e.data)}catch(_){return}if(m&&m.t)mpIn(p,m)};
  p.ev.onopen=()=>{if(!MP.host&&!p.gone)sendTo(p,{t:'hi',n:MP.name},'ev')};
  p.ev.onclose=()=>mpClosed(p);
- pc.oniceconnectionstatechange=()=>{if(pc.iceConnectionState=='failed'||pc.iceConnectionState=='closed')mpClosed(p)};
+ pc.oniceconnectionstatechange=()=>{const st=pc.iceConnectionState;
+  if(st=='failed'||st=='closed'){if(!p.gone&&!MP.host&&!MP.joined&&p===MP.up&&SG.code&&SG.retry<2){p.gone=true;try{pc.close()}catch(_){}const n=SG.retry+1;mpStat('A rota de rede falhou. Tentando de novo ('+(n+1)+'/3)...');sigJoin(SG.code,n)}else mpClosed(p)}
+  else if(st=='checking'&&!MP.host&&!MP.joined)mpStat('Sala encontrada! Negociando a rota de rede...')};
  return p}
 function sendTo(p,m,ch){const c=ch=='st'?p.st:p.ev;if(c&&c.readyState=='open'){try{c.send(JSON.stringify(m))}catch(e){}}}
 async function mpHostInvite(){if(MP.pend){MP.pend.gone=true;try{MP.pend.pc.close()}catch(_){}}
@@ -2959,7 +2963,7 @@ async function mpHostAccept(code){const p=MP.pend;if(!p)throw new Error('gere um
 async function mpGuestJoin(code){const pc=new RTCPeerConnection(ICE),p=mpPeer(pc,0);MP.up=p;MP.host=false;await pc.setRemoteDescription(await mpDec(code));await pc.setLocalDescription(await pc.createAnswer());await mpWaitIce(pc);return mpEnc(pc.localDescription)}
 // --- sala por código curto: o ntfy.sh (serviço público gratuito) só repassa a "apresentação" entre os navegadores; o jogo em si segue P2P ---
 const SIGU='https://ntfy.sh/crossfire-lite-',SIGA='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const SG={es:null,pend:{},seen:{},iv:0,to:0};
+const SG={es:null,pend:{},seen:{},iv:0,to:0,code:'',retry:0};
 const sigRnd=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>SIGA[b%SIGA.length]).join('');
 const sigNorm=t=>Array.from(String(t||'').toUpperCase()).filter(c=>SIGA.includes(c)).join('');
 function sigPub(room,m){try{fetch(SIGU+room,{method:'POST',body:JSON.stringify(m)}).catch(()=>{})}catch(e){}}
@@ -2969,7 +2973,7 @@ function sigSub(room,onmsg,onopen,onfail){let es,ok=false;try{es=new EventSource
  es.onmessage=e=>{try{const o=JSON.parse(e.data);if(o.event!='message')return;const m=JSON.parse(o.message);if(m&&m.t)onmsg(m)}catch(_){}};
  return es}
 function sigClose(){if(SG.es){try{SG.es.close()}catch(e){}SG.es=null}clearInterval(SG.iv);clearTimeout(SG.to);
- for(const g in SG.pend){const q=SG.pend[g];if(!MP.peers[q.id]){q.gone=true;try{q.pc.close()}catch(e){}}}SG.pend={};SG.seen={}}
+ for(const g in SG.pend){const q=SG.pend[g];if(!MP.peers[q.id]){q.gone=true;try{q.pc.close()}catch(e){}}}SG.pend={};SG.seen={};SG.code=''}
 // anfitrião: escuta a sala; para cada "hello" cria uma oferta própria e espera a resposta daquele convidado
 function sigHostOpen(){if(SG.es||!MP.room)return;const room=MP.room;
  SG.es=sigSub(room,m=>{if(!MP.host||room!=MP.room||typeof m.g!='string'||m.g.length>12)return;
@@ -2983,14 +2987,14 @@ async function sigHello(room,g){if(SG.seen[g])return;SG.seen[g]=1;
 async function sigAnswer(m){const q=SG.pend[m.g];if(!q)return;delete SG.pend[m.g];
  try{await q.pc.setRemoteDescription(await mpDec(m.c));MP.peers[q.id]=q}catch(e){q.gone=true;try{q.pc.close()}catch(_){}}}
 // convidado: entra na sala, manda "hello" (repete algumas vezes), recebe a oferta e devolve a resposta
-function sigJoin(code){const room=sigNorm(code);if(room.length!=6){mpStat('Código inválido: são 6 letras/números (ex.: ABC-DEF).');return}
- sigClose();if(MP.up){MP.up.gone=true;try{MP.up.pc.close()}catch(e){}MP.up=null}
+function sigJoin(code,retry){retry=retry|0;const room=sigNorm(code);if(room.length!=6){mpStat('Código inválido: são 6 letras/números (ex.: ABC-DEF).');return}
+ sigClose();SG.code=code;SG.retry=retry;if(MP.up){MP.up.gone=true;try{MP.up.pc.close()}catch(e){}MP.up=null}
  const g=sigRnd(6),hello=()=>sigPub(room,{t:'hello',g});let got=false,opened=false,tries=0;
  mpStat('Procurando a sala '+room.slice(0,3)+'-'+room.slice(3)+'...');
  SG.es=sigSub(room,async m=>{if(m.g!=g||got)return;
    if(m.t=='offer'){got=true;clearInterval(SG.iv);mpStat('Sala encontrada! Conectando...');
     try{const ans=await mpGuestJoin(m.c);sigPub(room,{t:'answer',g,c:ans});
-     SG.to=setTimeout(()=>{if(!MP.joined)mpStat('Não consegui conectar com o anfitrião. Tente de novo ou use a conexão manual (plano B).')},30000)}
+     SG.to=setTimeout(()=>{if(MP.joined)return;if(retry<2){mpStat('Não conectou. Tentando de novo ('+(retry+2)+'/3)...');sigJoin(code,retry+1)}else mpStat('Não consegui conectar com o anfitrião. A rede de um dos dois pode estar bloqueando a conexão direta: tente outra rede (ex.: 4G/hotspot), desative VPN, ou use a conexão manual (plano B).')},15000)}
     catch(e){mpStat('Falha ao conectar: '+(e&&e.message||e))}}
    else if(m.t=='full'){got=true;clearInterval(SG.iv);mpStat(m.s?'A partida já começou.':'A sala está cheia.')}},
   ()=>{if(!opened){opened=true;hello()}},
