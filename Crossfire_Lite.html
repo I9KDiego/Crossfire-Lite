@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <title>Crossfire Lite</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -76,6 +77,10 @@ body.inmenu #radar,body.inmenu #top,body.inmenu #feed,body.inmenu #hp,body.inmen
 #cfgbox{width:min(580px,100%);max-height:100%;overflow:auto;box-sizing:border-box;border:2px solid #ffc800;background:#0b0b0b;padding:22px 26px;font-family:"Segoe UI",Roboto,Arial,sans-serif;text-align:center}
 #cfgbox h2{margin:0 0 6px;font:400 30px Anton,Impact,sans-serif;letter-spacing:2px;color:#ffc800}
 #cfgbox p{font-size:13px;line-height:1.7;opacity:.85;margin:12px 0}
+#cfgc{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:50%;border:2px solid #ffc800;background:#000d;color:#ffc800;font:800 20px/1 Arial,sans-serif;cursor:pointer;z-index:2;padding:0}
+#cfgc:hover,#cfgc:active{background:#ffc800;color:#111}
+.tcOnly{display:none}body.touch .tcOnly{display:block}body.touch .pcOnly{display:none}
+body.touch #cfgbox{padding:14px 16px;margin-top:40px}
 #cfgx{margin-top:6px;padding:12px 40px;font:800 16px "Segoe UI",Arial,sans-serif;letter-spacing:2px;background:#ffc800;border:0;cursor:pointer;color:#111}
 @media (max-width:1000px){#side{position:static;width:auto;margin-top:16px;padding:10px 16px;border-left:0;text-align:center;background:none}#sideT{font-size:28px;transform:none}#sideD{font-size:17px;margin-top:6px}#slogan{display:none}}
 @media (max-width:700px){#brand{display:none}.cn{width:60px;height:30px;left:auto}.cn.tl,.cn.bl{left:14px}.cn.tr,.cn.br{right:14px}#logo .sub{letter-spacing:2px;font-size:11px}}
@@ -166,6 +171,30 @@ body.inmenu #bossbar,body.inshop #bossbar{display:none!important}
 #sb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);min-width:320px;background:#000d;border:2px solid #ffc800;padding:14px 18px;z-index:6;display:none;font-weight:700;letter-spacing:1px}
 #sb div{display:flex;gap:16px;padding:3px 0}#sb span:first-child{flex:1}#sb span+span{width:42px;text-align:right}
 body.inmenu #sb{display:none!important}
+/* ===== Controles de toque: só existem em celular/tablet (a classe body.touch só é aplicada nesses aparelhos) ===== */
+body.touch{touch-action:none;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body.touch #menu{touch-action:pan-y}
+body.touch #side{display:none}
+body.touch #shop{padding:8px 12px;overflow:auto;touch-action:pan-y}
+body.touch #radar{width:112px;height:112px;left:8px;top:8px}
+body.touch #feed{top:58px;right:8px;font-size:12px}
+body.touch #bmenu{left:8px;right:auto;top:132px;transform:scale(.6);transform-origin:left top}
+body.touch #bmenu.pop{transform:scale(.64)}
+body.touch #bmenu .bmf{display:none}
+body.touch #bossbar{top:58px;width:min(420px,46vw)}
+#tc{position:fixed;inset:0;z-index:6;display:none;touch-action:none;-webkit-user-select:none;user-select:none;pointer-events:none}
+#tc>*{pointer-events:auto}
+#tcJ{position:absolute;left:0;top:0;width:42%;height:100%}
+#tcLk{position:absolute;left:42%;top:0;right:0;bottom:0}
+#tcJh{position:absolute;left:calc(34px + env(safe-area-inset-left,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));width:100px;height:100px;border-radius:50%;border:2px dashed #fff5;color:#fff7;font:700 12px/100px Rajdhani,Arial,sans-serif;text-align:center;letter-spacing:1px;pointer-events:none}
+#tcJb{position:absolute;width:112px;height:112px;border-radius:50%;border:2px solid #fff6;background:#ffffff14;display:none;pointer-events:none}
+#tcJb i{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffaa}
+.tb{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#0007;border:2px solid #fff7;color:#fff;font:700 12px/1 Rajdhani,Arial,sans-serif;letter-spacing:.5px;touch-action:none;-webkit-user-select:none;user-select:none;text-align:center}
+.tb.on{background:#ffc800bb;color:#000;border-color:#fff}
+#tcTop{position:absolute;right:calc(8px + env(safe-area-inset-right,0px));top:calc(8px + env(safe-area-inset-top,0px));display:flex;gap:4px;pointer-events:none}
+#tcTop .tb{position:relative;width:40px;height:40px;border-radius:10px;font-size:15px;pointer-events:auto}
+#tcRot{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:#000;color:#ffd24a;font:700 22px Rajdhani,Arial,sans-serif;text-align:center;padding:24px;letter-spacing:1px}
+@media (orientation:portrait){body.touch #tcRot{display:flex}}
 </style></head><body>
 <canvas id="radar" width="520" height="520"></canvas>
 <div id="medbar"><i></i><b>USANDO KIT MÉDICO…</b></div><div id="top"></div><button id="skipw">PULAR ESPERA <small>[K]</small></button><div id="feed"></div>
@@ -200,9 +229,10 @@ body.inmenu #sb{display:none!important}
 </nav>
 <div id="side"><div id="sideT"></div><p id="sideD"></p></div>
 </div>
-<div id="cfgm"><div id="cfgbox"><h2>CONFIGURAÇÕES</h2>
+<div id="cfgm"><button id="cfgc" aria-label="Fechar configurações">✕</button><div id="cfgbox"><h2>CONFIGURAÇÕES</h2>
 <div id="cfg"><label>Sensibilidade <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1"> <span id="sv">1.00</span></label><br><label>Campo de visão <input type="range" id="fov" min="60" max="100" step="1" value="75"> <span id="fv">75</span></label></div>
-<p><b>WASD</b> mover · <b>Mouse</b> mirar · <b>Clique esquerdo</b> atirar / esfaquear<br><b>1</b> arma principal · <b>2</b> pistola · <b>3</b> faca (corre mais rápido, silenciosa) · <b>B</b> loja · <b>E</b> plantar bomba (Multiplayer) · <b>Botão direito</b> zoom da AWP · <b>R</b> recarregar · <b>Espaço</b> pular<br><b>Ctrl</b> ou <b>C</b> agachar (mais preciso, menos recuo, lento, silencioso)<br><b>Shift</b> andar (lento, mais preciso, silencioso) · <b>M</b> mapa grande · <b>Tab</b> placar (online) · <b>Esc</b> ou <b>P</b> pausar / configurações · <b>K</b> pular a espera (Modo Zumbi) · <b>H</b> usar kit médico (3 s) · <b>G</b> arremessar granada (compre na loja, máx. 3) · <b>4</b> martelo (Modo Zumbi): <b>T</b> trocar o item do menu de construção (arame farpado $300 · parede $500 · torreta automática $800) · <b>R</b> reparar (segure o clique)</p>
+<p class="pcOnly"><b>WASD</b> mover · <b>Mouse</b> mirar · <b>Clique esquerdo</b> atirar / esfaquear<br><b>1</b> arma principal · <b>2</b> pistola · <b>3</b> faca (corre mais rápido, silenciosa) · <b>B</b> loja · <b>E</b> plantar bomba (Multiplayer) · <b>Botão direito</b> zoom da AWP · <b>R</b> recarregar · <b>Espaço</b> pular<br><b>Ctrl</b> ou <b>C</b> agachar (mais preciso, menos recuo, lento, silencioso)<br><b>Shift</b> andar (lento, mais preciso, silencioso) · <b>M</b> mapa grande · <b>Tab</b> placar (online) · <b>Esc</b> ou <b>P</b> pausar / configurações · <b>K</b> pular a espera (Modo Zumbi) · <b>H</b> usar kit médico (3 s) · <b>G</b> arremessar granada (compre na loja, máx. 3) · <b>4</b> martelo (Modo Zumbi): <b>T</b> trocar o item do menu de construção (arame farpado $300 · parede $500 · torreta automática $800) · <b>R</b> reparar (segure o clique)</p>
+<p class="tcOnly"><b>Joystick</b> (esquerda) mover · <b>arrastar</b> (direita) mirar · <b>ATIRAR</b> tiro · <b>PULAR</b> / <b>AGACHAR</b> · <b>R</b> recarregar · <b>MIRA</b> zoom · <b>⇄</b> trocar arma · <b>💣</b> granada · <b>LOJA</b> comprar</p>
 <p style="opacity:.6">Dica: tiro na cabeça mata na hora.</p>
 <button id="cfgx">VOLTAR</button></div></div>
 </div>
@@ -401,6 +431,10 @@ for(let x=-5.4;x<=5.41;x+=1.08){deco(x,Y0+.6,6.9,.1,.8,.1,railM,0)}
 deco(0,Y0+1.02,6.9,11.2,.12,.12,railM,0);
 for(let z=4.05;z<=6.9;z+=1.05){deco(-5.6,Y0+.6,z,.1,.8,.1,railM,0);deco(5.6,Y0+.6,z,.1,.8,.1,railM,0)}
 deco(-5.6,Y0+1.02,5.45,.12,.12,3,railM,0);deco(5.6,Y0+1.02,5.45,.12,.12,3,railM,0);
+// colisão da cerca da varanda do 2º andar (frente e laterais): jogador, zumbis e bots não atravessam nem pulam por cima
+uwall(0,6.9,11.5,.3);uwall(-5.6,5.35,.3,3.5);uwall(5.6,5.35,.3,3.5);
+// travessa baixa, vasos nos cantos e piso de tábuas da varanda
+deco(0,Y0+.32,6.9,11.2,.08,.08,railM,0);deco(-5.6,Y0+.32,5.45,.08,.08,3,railM,0);deco(5.6,Y0+.32,5.45,.08,.08,3,railM,0);
 function hwallD(ax,f,y0,H,a,b,ops){let p=a;
  const put=(u,v,hh,yb)=>{if(v-u>.01){const cx=(u+v)/2,w=v-u;
   solids.push(ax=='x'?deco(cx,yb+hh/2,f,w,hh,.35,bkMat(w,hh),1):deco(f,yb+hh/2,cx,.35,hh,w,bkMat(w,hh),1))}};
@@ -418,6 +452,61 @@ hwallD('z',-4.8,Y0,H2,-3.6,3.6,[[-1,1]]);hwallD('z',4.8,Y0,H2,-3.6,3.6,[[-1,1]])
 hwallDCol('x',-3.8,-5,5,[[-3.3,-1.7]]);
 hwallDCol('x',3.8,-5,5,[[-4,-2.4],[-.9,.9,'d'],[2.4,4]]);
 hwallDCol('z',-4.8,-3.6,3.6,[[-1,1]]);hwallDCol('z',4.8,-3.6,3.6,[[-1,1]]);
+// ---- Reforma do 2º andar: piso de tábuas, lambri, rodapé, teto com vigas, luz, tapete, quadro e móveis ----
+{
+const YF=Y0+.08;   // topo do piso original
+const cv=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'));const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t};
+const plankT=cv(128,128,g=>{const cs=['#b07a45','#a06c3a','#b98650','#9a6636'];for(let i=0;i<8;i++){g.fillStyle=cs[i%4];g.fillRect(0,i*16,128,16);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,i*16,128,1.5);g.fillRect((i*37)%128,i*16,1.5,16);g.fillStyle='rgba(255,255,255,.07)';g.fillRect(0,i*16+3,128,2)}});
+const plankM=(w,d)=>{const t=plankT.clone();t.needsUpdate=true;t.repeat.set(w,d);return new THREE.MeshLambertMaterial({map:t})};
+const dc=(x,y,z,w,h,d,m,sh)=>{const o=deco(x,y,z,w,h,d,m,sh);o.castShadow=false;return o};
+const mat=c=>new THREE.MeshLambertMaterial({color:c}),lampM2=new THREE.MeshBasicMaterial({color:0xffe2a0});
+const furnM=mat(0x6b4423),darkM=mat(0x3a2514),creamM=mat(0xf1e8d4),sheetM=mat(0xf0ece0),bedM=mat(0x3d5f86),redM=mat(0x7a2a22),sandM=mat(0xd9c79a);
+// piso de tábuas por cima do piso antigo (deixa o vão da escada livre)
+const fl=(x0,x1,z0,z1)=>dc((x0+x1)/2,YF+.012,(z0+z1)/2,x1-x0,.024,z1-z0,plankM(x1-x0,z1-z0),0);
+fl(-2.5,4.6,-3.6,3.6);fl(-4.6,-4,-3.6,3.6);fl(-4,-2.5,-3.6,-1.85);fl(-4,-2.5,1.85,3.6);
+// piso da varanda
+dc(0,Y0+.222,5.45,11.2,.024,2.9,plankM(11.2,2.9),0);
+// lambri de madeira + rodapé + friso nas paredes internas
+const wainM=(w)=>{const t=TX.wood[0].clone();t.needsUpdate=true;t.repeat.set(Math.max(w,.3)/1.2,.7);return new THREE.MeshLambertMaterial({map:t})};
+const wain=(ax,f,sg,u0,u1)=>{const w=u1-u0,m=(u0+u1)/2,n=f+sg*.03,n2=f+sg*.045,wm=wainM(w);
+ if(ax=='x'){dc(m,YF+.425,n,w,.85,.06,wm,0);dc(m,YF+.07,n2,w,.14,.09,darkM,0);dc(m,YF+.87,n2,w,.05,.09,creamM,0)}
+ else{dc(n,YF+.425,m,.06,.85,w,wm,0);dc(n2,YF+.07,m,.09,.14,w,darkM,0);dc(n2,YF+.87,m,.09,.05,w,creamM,0)}};
+wain('x',-3.625,1,-4.6,4.6);wain('x',3.625,-1,-4.6,-.9);wain('x',3.625,-1,.9,4.6);wain('z',-4.625,1,-3.6,3.6);wain('z',4.625,-1,-3.6,3.6);
+// teto de tábuas com vigas de madeira e luminária pendente com luz quente
+dc(0,Y0+H2-.03,0,9.2,.06,7.2,mat(0xe6dcc4),0);
+for(const z of[-2.4,0,2.4])dc(0,Y0+H2-.17,z,9.2,.22,.22,darkM,0);
+for(const x of[-3.2,0,3.2])dc(x,Y0+H2-.1,0,.16,.1,7.2,darkM,0);
+dc(0,Y0+H2-.45,0,.02,.8,.02,darkM,0);dc(0,Y0+H2-.9,0,.5,.18,.5,lampM2,0);
+const roomL=new THREE.PointLight(0xffd9a0,.85,12,1.4);roomL.position.set(0,Y0+H2-1.2,0);scene.add(roomL);
+// tapete
+dc(.8,YF+.03,0,3.4,.02,2.6,redM,0);dc(.8,YF+.04,0,3.0,.02,2.2,sandM,0);dc(.8,YF+.05,0,2.0,.02,1.2,redM,0);
+// quadro sobre a cama (paisagem pintada em canvas)
+const paintT=cv(128,80,g=>{const gr=g.createLinearGradient(0,0,0,80);gr.addColorStop(0,'#f2b36b');gr.addColorStop(.55,'#f7d79a');gr.addColorStop(.56,'#4f8a48');gr.addColorStop(1,'#2f6b2a');g.fillStyle=gr;g.fillRect(0,0,128,80);g.fillStyle='#e8553a';g.beginPath();g.arc(90,42,12,0,7);g.fill();g.fillStyle='#355a30';g.beginPath();g.moveTo(10,50);g.lineTo(34,18);g.lineTo(58,50);g.fill();g.beginPath();g.moveTo(40,50);g.lineTo(64,24);g.lineTo(88,50);g.fill()});
+dc(3.4,Y0+1.95,-3.6,1.15,.75,.04,furnM,0);dc(3.4,Y0+1.95,-3.575,.98,.58,.02,new THREE.MeshLambertMaterial({map:paintT}),0);
+// cama (canto nordeste) + criado-mudo com abajur
+deco(3.4,YF+.18,-2.55,1.7,.22,2.15,furnM,1);deco(3.4,YF+.38,-2.5,1.55,.2,2.0,sheetM,1);deco(3.4,YF+.45,-2.15,1.58,.14,1.3,bedM,1);
+deco(3.4,YF+.5,-3.3,.9,.12,.4,sheetM,1);deco(3.4,YF+.55,-3.57,1.75,.9,.08,furnM,1);
+deco(2.2,YF+.25,-3.35,.5,.5,.5,furnM,1);dc(2.2,YF+.62,-3.35,.2,.24,.2,lampM2,0);
+uwall(3.4,-2.55,1.75,2.15);uwall(2.2,-3.35,.5,.5);
+// guarda-roupa na parede norte
+deco(-.5,YF+1.0,-3.35,1.4,2.0,.55,furnM,1);dc(-.5,YF+1.0,-3.07,.03,1.8,.02,darkM,0);dc(-.57,YF+1.0,-3.06,.04,.2,.03,creamM,0);dc(-.43,YF+1.0,-3.06,.04,.2,.03,creamM,0);
+uwall(-.5,-3.35,1.4,.55);
+// estante de livros na parede leste
+deco(4.38,YF+.95,2.3,.4,1.9,1.6,furnM,1);
+{const bc=[0xb03a2e,0x2f6b8f,0xd8a928,0x3f8a3a,0x7a4a8a,0xe8e0cc].map(mat);
+ for(let r=0;r<4;r++)for(let k=0;k<7;k++){const h=.26+((k*7+r*3)%4)*.03;dc(4.16,YF+.33+r*.42+h/2-.13,1.58+k*.21,.05,h,.15,bc[(k+r*2)%6],0)}}
+uwall(4.38,2.3,.45,1.65);
+// escrivaninha sob a janela sul + cadeira
+deco(2.6,YF+.72,3.25,1.4,.06,.7,furnM,1);for(const[dx,dz]of[[-.62,-.3],[.62,-.3],[-.62,.3],[.62,.3]])dc(2.6+dx,YF+.35,3.25+dz,.06,.7,.06,furnM,0);
+dc(2.6,YF+.45,2.6,.5,.06,.5,furnM,0);dc(2.6,YF+.7,2.37,.5,.5,.05,furnM,0);for(const dx of[-.22,.22])for(const dz of[-.22,.22])dc(2.6+dx,YF+.21,2.6+dz,.05,.42,.05,furnM,0);
+dc(3.0,YF+.82,3.3,.2,.18,.2,lampM2,0);
+uwall(2.6,3.25,1.4,.7);
+// vaso com planta no canto sudoeste e vasos nos cantos da varanda
+{const lf=mat(0x3f8a3a),pot=mat(0xa0522d);
+ const plant=(x,y,z,s)=>{dc(x,y+.2*s,z,.4*s,.4*s,.4*s,pot,0);const l=new THREE.Mesh(new THREE.SphereGeometry(.34*s,8,6),lf);l.position.set(x,y+.65*s,z);scene.add(l)};
+ plant(-4.25,YF,3.2,1.1);uwall(-4.25,3.2,.5,.5);
+ plant(-5.2,Y0+.23,6.5,1);plant(5.2,Y0+.23,6.5,1)}
+}
 // ---- Acabamento da casa: guarnição das janelas e portas, venezianas, floreiras, cantoneiras, rodapé de pedra, friso e beiral ----
 let roofC;
 {const cream=new THREE.MeshLambertMaterial({color:0xf1e8d4}),stone=new THREE.MeshLambertMaterial({color:0x7d8087}),dark=new THREE.MeshLambertMaterial({color:0x2a2623}),
@@ -3162,7 +3251,9 @@ function setSide(k){const s=(k=='exit'&&!menuFresh)?['VOLTE','AO MENU','Encerrar
 document.querySelectorAll('.opt').forEach(o=>['mouseenter','focus'].forEach(ev=>o.addEventListener(ev,()=>setSide(o.dataset.k))));
 document.querySelectorAll('.mbtn').forEach(btn=>btn.addEventListener('click',()=>enter(btn.dataset.m)));
 $('bcfg').onclick=()=>$('cfgm').classList.add('show');
-$('cfgx').onclick=()=>$('cfgm').classList.remove('show');
+$('cfgx').onclick=$('cfgc').onclick=()=>$('cfgm').classList.remove('show');
+$('cfgm').addEventListener('click',e=>{if(e.target===$('cfgm'))$('cfgm').classList.remove('show')});
+addEventListener('keydown',e=>{if(e.code=='Escape'&&$('cfgm').classList.contains('show'))$('cfgm').classList.remove('show')});
 $('bexit').onclick=()=>{if(!menuFresh){leaveGame();return}playing=false;try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}window.close();setTimeout(()=>{$('msg').textContent='Você já pode fechar esta aba.'},250)};
 showMenu(true);
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cvs;if(!locked&&playing&&!nolock)pause()});
@@ -3186,4 +3277,76 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/
  if(menuEl.style.display!=='none'){const gv=gun.visible,kv=knife.visible;gun.visible=knife.visible=false;renderer.render(scene,cam);gun.visible=gv;knife.visible=kv}
  else renderer.render(scene,cam)}
 cam.position.set(0,1.7,26);requestAnimationFrame(loop);
+// ====================== CONTROLES DE TOQUE (celular/tablet) ======================
+// Só ativa em aparelhos de toque (sem mouse). No PC nada disso é criado nem aparece.
+// Para testar no PC: abra o arquivo com ?mobile no final do endereço. Para forçar o modo PC no celular: ?pc
+const TOUCH=(()=>{try{const q=location.search;if(/[?&]pc\b/.test(q))return false;if(/[?&]mobile\b/.test(q))return true;return matchMedia('(hover:none) and (pointer:coarse)').matches}catch(e){return false}})();
+function initTouch(){
+ document.body.classList.add('touch');nolock=true;
+ const tc=document.createElement('div');tc.id='tc';
+ const B=(id,t,sz,r,b,extra)=>'<div class="tb" id="'+id+'" style="width:'+sz+'px;height:'+sz+'px;right:calc('+r+'px + env(safe-area-inset-right,0px));bottom:calc('+b+'px + env(safe-area-inset-bottom,0px));'+(extra||'')+'">'+t+'</div>';
+ tc.innerHTML='<div id="tcJ"></div><div id="tcLk"></div><div id="tcJh">MOVER</div><div id="tcJb"><i></i></div>'
+  +B('tcFire','ATIRAR',88,24,78,'font-size:13px')+B('tcJump','PULAR',62,122,58)+B('tcCrouch','AGACHAR',52,192,92,'font-size:10px')
+  +B('tcRel','R',52,24,176,'font-size:16px')+B('tcScope','MIRA',52,84,172,'font-size:11px')+B('tcCtx','T',52,144,170,'font-size:16px;display:none')
+  +'<div id="tcTop"><div class="tb" id="tcTab" style="display:none;font-size:11px">TAB</div><div class="tb" id="tcHam" style="display:none">🔨</div><div class="tb" id="tcHeal" style="display:none">✚</div><div class="tb" id="tcGren">💣</div><div class="tb" id="tcSwap">⇄</div><div class="tb" id="tcShop" style="font-size:11px">LOJA</div><div class="tb" id="tcPause">II</div></div>';
+ document.body.appendChild(tc);
+ const rot=document.createElement('div');rot.id='tcRot';rot.innerHTML='Gire o aparelho para<br>o modo horizontal';document.body.appendChild(rot);
+ const $t=id=>document.getElementById(id),ok=()=>playing&&!shopOpen&&!mpPaused&&state!='dead';
+ // evita o "mouse falso" que o navegador gera depois de um toque (senão um toque na tela atirava)
+ addEventListener('mousedown',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)e.stopImmediatePropagation()},true);
+ // ---- entrada: eventos de TOQUE nativos no celular (multi-toque confiável); ponteiro/mouse só como reserva no PC (?mobile) ----
+ const bindDrag=(el,h)=>{
+  if('ontouchstart' in window){
+   el.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches)h.start&&h.start(t.identifier,t.clientX,t.clientY)},{passive:false});
+   el.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)h.move&&h.move(t.identifier,t.clientX,t.clientY)},{passive:false});
+   const end=e=>{e.preventDefault();for(const t of e.changedTouches)h.end&&h.end(t.identifier)};
+   el.addEventListener('touchend',end,{passive:false});el.addEventListener('touchcancel',end,{passive:false})
+  }else{
+   el.addEventListener('pointerdown',e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(_){}h.start&&h.start(e.pointerId,e.clientX,e.clientY)});
+   el.addEventListener('pointermove',e=>{h.move&&h.move(e.pointerId,e.clientX,e.clientY)});
+   const end=e=>{h.end&&h.end(e.pointerId)};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end)
+  }};
+ // ---- joystick (metade esquerda): a base aparece onde o dedo toca, sempre DENTRO da tela ----
+ const R=56,J={id:null,ox:0,oy:0,bx:0,by:0},jb=$t('tcJb'),jk=jb.firstChild,jh=$t('tcJh'),zj=$t('tcJ');
+ const mvKeys=(a,b,c,d,w)=>{keys.KeyW=a;keys.KeyS=b;keys.KeyA=c;keys.KeyD=d;keys.ShiftLeft=w};
+ const jReset=()=>{J.id=null;jb.style.display='none';jh.style.display='block';mvKeys(false,false,false,false,false)};
+ bindDrag(zj,{
+  start:(id,x,y)=>{if(J.id!=null)return;J.id=id;J.ox=x;J.oy=y;
+   J.bx=Math.max(R+14,Math.min(zj.clientWidth-R-14,x));J.by=Math.max(R+14,Math.min(innerHeight-R-14,y));   // base nunca sai da tela
+   jb.style.display='block';jb.style.left=(J.bx-R)+'px';jb.style.top=(J.by-R)+'px';jk.style.transform='translate(0,0)';jh.style.display='none'},
+  move:(id,x,y)=>{if(id!==J.id)return;let dx=x-J.ox,dy=y-J.oy;const m=Math.hypot(dx,dy);if(m>R){dx*=R/m;dy*=R/m}jk.style.transform='translate('+dx+'px,'+dy+'px)';
+   const th=R*.3,mm=Math.min(m,R);mvKeys(dy<-th,dy>th,dx<-th,dx>th,mm>th&&mm<R*.62)},   // empurrar pouco = andar devagar e silencioso; empurrar tudo = correr
+  end:id=>{if(id===J.id)jReset()}});
+ // ---- olhar: arrastar na metade direita (ou arrastando em cima do botão de atirar) ----
+ const lookBy=(dx,dy)=>{if(!ok())return;const z=sens*(cam.fov/baseFov);P.yaw-=dx*.005*z;P.pitch=Math.max(-1.5,Math.min(1.5,P.pitch-dy*.005*z))};
+ const lookH=()=>{const L={};return{start:(id,x,y)=>{L[id]={x,y}},move:(id,x,y)=>{const l=L[id];if(!l)return;lookBy(x-l.x,y-l.y);l.x=x;l.y=y},end:id=>{delete L[id]}}};
+ bindDrag($t('tcLk'),lookH());
+ // ---- botões ----
+ const press=(id,on,off,drag)=>{const el=$t(id),lh=drag?lookH():null;
+  bindDrag(el,{start:(i,x,y)=>{el.classList.add('on');lh&&lh.start(i,x,y);on&&on()},move:(i,x,y)=>{lh&&lh.move(i,x,y)},end:i=>{el.classList.remove('on');lh&&lh.end(i);off&&off()}});return el};
+ const tap=(id,fn)=>press(id,()=>{if(playing)fn()});
+ press('tcFire',()=>{if(!ok())return;down=true;edge=true},()=>{down=false;edge=false},true);
+ press('tcJump',()=>{keys.Space=true},()=>{keys.Space=false});
+ const cr=$t('tcCrouch');press('tcCrouch',()=>{keys.KeyC=!keys.KeyC},()=>cr.classList.toggle('on',!!keys.KeyC));
+ tap('tcRel',()=>{if(!ok())return;if(hamOn)hamKey('R');else startReload()});
+ tap('tcScope',()=>{if(!ok())return;if(scoped){scoped=false;return}if(!hamOn&&gw().scope&&reloading<=0)scoped=true});
+ tap('tcGren',()=>{throwGren()});tap('tcHeal',()=>{useMed()});tap('tcHam',()=>{if(ok())hamToggle()});
+ const ctx=press('tcCtx',()=>{if(!playing)return;if(mode=='snd')keys.KeyE=true;else if(!shopOpen)hamKey('T')},()=>{keys.KeyE=false});
+ tap('tcSwap',()=>{if(!ok())return;const sl=[];if(inv.pri)sl.push(1);sl.push(2,3);let i=sl.indexOf(wpn);if(i<0)i=0;sel(sl[(i+1)%sl.length])});
+ tap('tcShop',()=>toggleShop());tap('tcPause',()=>pause());
+ press('tcTab',()=>{if(MP.inGame){mpSb();$('sb').style.display='block'}},()=>{$('sb').style.display='none'});
+ // ---- mostrar/esconder conforme o estado do jogo ----
+ setInterval(()=>{
+  const port=matchMedia('(orientation:portrait)').matches;if(port&&playing&&!shopOpen&&!(MP.inGame&&mpPaused))pause();
+  const on=ok()&&!loadingScr;tc.style.display=on?'block':'none';
+  if(!on){if(J.id!=null)jReset();if(down){down=false;edge=false}keys.KeyE=false;keys.Space=false;return}
+  const z=mode=='zombie';$t('tcHam').style.display=z?'flex':'none';$t('tcHeal').style.display=MEDM(mode)?'flex':'none';$t('tcTab').style.display=MP.inGame?'flex':'none';
+  const cx=(z&&hamOn)||mode=='snd';ctx.style.display=cx?'flex':'none';ctx.textContent=mode=='snd'?'E':'T';$t('tcRel').textContent=hamOn?'🔧':'R';
+  $t('tcScope').style.opacity=(!hamOn&&gw().scope)?1:.4},120);
+ // pausa ao sair do app / trocar de aba
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing&&!shopOpen)pause()});
+ // tela cheia + trava em modo horizontal (onde o navegador permitir)
+ const _fs=fsLock;fsLock=function(){_fs();try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{})}catch(e){}};
+}
+if(TOUCH)initTouch();
 </script></body></html>
