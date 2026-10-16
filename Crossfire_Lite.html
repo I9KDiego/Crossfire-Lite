@@ -642,7 +642,7 @@ function silo(x,z,tw){const m=new THREE.Mesh(siloG,siloM);m.position.set(x,3,z);
   for(const q of[-1,1]){deco(lx,3.1,z+q*.3,.1,6.2,.1,ladM,false);for(const y of[.9,2.4,3.9,5.4])deco(lx+.07,y,z+q*.3,.16,.07,.07,ladM,false)}
   for(let i=0;i<13;i++)deco(lx,.45+i*.45,z,.07,.07,.6,ladM,false)}
  boxes.push({x0:x-1.25,x1:x+1.25,z0:z-1.25,z1:z+1.25,h:tw?6:7,col:'#9aa0a8'})}
-bldg(-33,-30,10,8,3.6,'wall','es');bldg(33,-30,10,6,3.4,'house','sw');
+bldg(33,-30,10,6,3.4,'house','sw');   // (a casinha cinza do canto noroeste virou a CASA DE FAZENDA, mais abaixo)
 bldg(34,2,6,6,3,'wood','w');
 [[-12,-36,6,2.4,2.6,'blue'],[12,-34,2.4,6,2.6,'red'],[0,36,6,2.4,2.6,'green'],[20,36,6,2.4,2.6,'blue'],[36,-16,2.4,6,2.6,'green'],[-36,-16,6,2.4,2.6,'blue'],[36,16,2.4,6,2.6,'blue'],
  [-18,-30,4,.8,1,'sand'],[20,-28,.8,4,1,'sand'],[-8,30,4,.8,1,'sand'],[10,28,4,.8,1,'sand'],[26,-30,1.4,1.4,1.1],[-20,-26,1.4,1.4,1.1],[22,26,1.4,1.4,1.1],[-24,28,1.4,1.4,1.1],
@@ -682,6 +682,59 @@ bldg(34,2,6,6,3,'wood','w');
   const dp=new THREE.Mesh(new THREE.PlaneGeometry(5,5),dirtM);dp.rotation.x=-Math.PI/2;dp.position.set(cx+sg*(W/2+3.2),.022,cz);scene.add(dp)}
  deco(cx,2.6,cz,.3,.3,.3,lampM,false);   // lâmpada pendurada lá dentro
 }
+
+// ---- CASA DE FAZENDA (canto noroeste): tábuas brancas, telhado de duas águas com telhas, chaminé de tijolo, janelas com venezianas, varanda e fardos de feno ----
+{const cvT=(w,h,f)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');f(x,w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t};
+ const clap=(x,w,h)=>{for(let i=0;i<8;i++){const y=i*h/8;x.fillStyle=i%2?'#ece5d2':'#e4dcc6';x.fillRect(0,y,w,h/8);x.fillStyle='rgba(90,70,40,.38)';x.fillRect(0,y+h/8-2,w,2);x.fillStyle='rgba(255,255,255,.4)';x.fillRect(0,y,w,1)}
+  for(let i=0;i<40;i++){x.fillStyle='rgba(110,90,60,'+Math.random()*.1+')';x.fillRect(Math.random()*w,Math.random()*h,10+Math.random()*30,1)}};
+ // telhas: as "fiadas" correm ao longo da cumeeira (por isso o desenho vem transposto: colunas = fiadas)
+ const shT=cvT(128,128,(x,w,h)=>{const cs=['#8a3b2c','#7c3326','#94412f','#6f2d22'];for(let c=0;c<8;c++)for(let r=-1;r<8;r++){const off=c%2?8:0;x.fillStyle=cs[(r*3+c+8)%4];x.fillRect(c*16,r*16+off,15,15);x.fillStyle='rgba(0,0,0,.35)';x.fillRect(c*16+15,0,1,h);x.fillStyle='rgba(255,255,255,.08)';x.fillRect(c*16,r*16+off,15,2)}});
+ TX.cottage=[cvT(128,128,clap),'#cdbf9f'];
+ const cx=-33,cz=-30,W=10,D=8,H=3.6,L=W+1.2;
+ const trimM=new THREE.MeshLambertMaterial({color:0x6b4a2c}),glM=new THREE.MeshLambertMaterial({color:0x2c3a48}),shutM=new THREE.MeshLambertMaterial({color:0x4f7a4a}),hdrC=new THREE.MeshLambertMaterial({color:0xe6dfcb}),deckM=new THREE.MeshLambertMaterial({color:0x8a6a40}),floorM=new THREE.MeshLambertMaterial({color:0x9a7a50}),ceilM=new THREE.MeshLambertMaterial({color:0xb08a58}),ironM=new THREE.MeshLambertMaterial({color:0x2a2a2e}),stoneM=new THREE.MeshLambertMaterial({color:0x8d8f94});
+ bldg(cx,cz,W,D,H,'cottage','es',2.6,true);   // mesmas paredes e portas (leste e sul) da casinha antiga
+ // telhado de duas águas ao longo do eixo x
+ const pr=[[-4.7,3.55],[4.7,3.55],[0,6.0]],sh=new THREE.Shape();pr.forEach((q,i)=>i?sh.lineTo(q[0],q[1]):sh.moveTo(q[0],q[1]));
+ const rg=new THREE.ExtrudeGeometry(sh,{depth:L,bevelEnabled:false});rg.rotateY(Math.PI/2);rg.translate(-L/2,0,0);
+ const capT=TX.cottage[0].clone();capT.needsUpdate=true;capT.repeat.set(.25,.25);
+ const slT=shT.clone();slT.needsUpdate=true;slT.repeat.set(.5,.5);
+ const rm=new THREE.Mesh(rg,[new THREE.MeshLambertMaterial({map:capT}),new THREE.MeshLambertMaterial({map:slT})]);rm.position.set(cx,0,cz);rm.castShadow=true;rm.receiveShadow=true;scene.add(rm);
+ deco(cx,6.0,cz,L+.1,.16,.4,trimM,false);   // cumeeira
+ for(const sg of[-1,1]){const fx=cx+sg*(L/2+.06);   // beiral de madeira acompanhando o frontão
+  for(let i=1;i<3;i++){const a=pr[i],b=pr[(i+1)%3],dz=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dz,dy);
+   const m=new THREE.Mesh(new THREE.BoxGeometry(.14,len+.1,.22),trimM);m.position.set(fx,(a[1]+b[1])/2,cz+(a[0]+b[0])/2);m.rotation.x=Math.atan2(dz,dy);m.castShadow=true;scene.add(m)}
+  // janelinha redonda do sótão no frontão
+  const oc=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.12,16),glM);oc.rotation.z=Math.PI/2;oc.position.set(fx+sg*.03,4.6,cz);scene.add(oc);
+  const of=new THREE.Mesh(new THREE.TorusGeometry(.46,.06,6,18),trimM);of.rotation.y=Math.PI/2;of.position.set(fx+sg*.08,4.6,cz);scene.add(of)}
+ // forro de madeira por dentro e piso de tábuas
+ deco(cx,3.5,cz,W-.6,.1,D-.6,ceilM,false);deco(cx,.02,cz,W-.6,.04,D-.6,floorM,false);
+ // cata-vento (galo simplificado) sobre a cumeeira
+ deco(cx+3.4,6.5,cz,.06,.9,.06,ironM,false);deco(cx+3.4,6.9,cz,.9,.07,.06,ironM,false);deco(cx+3.0,6.9,cz,.22,.22,.06,ironM,false);deco(cx+3.4,6.7,cz,.5,.07,.5,ironM,false).rotation.y=.4;
+ // chaminé de tijolo
+ deco(cx-3,5.5,cz-1.4,.9,3,.9,brickM,false);deco(cx-3,7.03,cz-1.4,1.1,.12,1.1,stoneM,false);
+ // cantos de madeira
+ for(const sx of[-1,1])for(const sz of[-1,1])deco(cx+sx*(W/2+.3),H/2,cz+sz*(D/2+.3),.34,H,.34,trimM,false);
+ // portas: batentes, verga de madeira e o vão acima da porta preenchido (as aberturas iam até o teto)
+ deco(cx,3.2,cz+D/2,2.6,.8,.6,hdrC,true);deco(cx+W/2,3.2,cz,.6,.8,2.6,hdrC,true);
+ deco(cx,2.95,cz+D/2+.34,3.0,.22,.12,trimM,false);deco(cx+W/2+.34,2.95,cz,.12,.22,3.0,trimM,false);
+ for(const q of[-1,1]){deco(cx+q*1.4,1.45,cz+D/2+.34,.2,2.9,.12,trimM,false);deco(cx+W/2+.34,1.45,cz+q*1.4,.12,2.9,.2,trimM,false)}
+ // varandas (degrau largo de madeira) na frente das duas portas
+ deco(cx,.1,cz+D/2+1.05,4.2,.2,1.5,deckM,false);deco(cx+W/2+1.05,.1,cz,1.5,.2,4.2,deckM,false);
+ // janelas com moldura, vidro, cruz e venezianas verdes; (x,z) = ponto na face externa, (nx,nz) = normal da parede
+ const win=(x,z,nx,nz)=>{const ax=nz!=0,put=(u,y,w,h,d,m)=>deco(x+(ax?u:nx*d/2),y,z+(ax?nz*d/2:u),ax?w:d,h,ax?d:w,m,false);
+  put(0,2.1,1.35,1.4,.08,trimM);put(0,2.1,1.0,1.1,.12,glM);put(0,2.1,.06,1.1,.15,trimM);put(0,2.1,1.0,.06,.15,trimM);put(0,1.33,1.6,.1,.24,trimM);
+  put(-.9,2.1,.45,1.35,.1,shutM);put(.9,2.1,.45,1.35,.1,shutM)};
+ for(const dx of[-2.6,2.6])win(cx+dx,cz-D/2-.3,0,-1);   // parede norte
+ for(const dz of[-1.8,1.8])win(cx-W/2-.3,cz+dz,-1,0);   // parede oeste
+ win(cx-3.15,cz+D/2+.3,0,1);win(cx+3.15,cz+D/2+.3,0,1);   // sul, dos dois lados da porta
+ win(cx+W/2+.3,cz-2.65,1,0);win(cx+W/2+.3,cz+2.65,1,0);   // leste, dos dois lados da porta
+ // fardos de feno redondos (cobertura) ao lado da casa
+ const hayT=TX.hay[0].clone();hayT.needsUpdate=true;hayT.repeat.set(3,2);const hayM=new THREE.MeshLambertMaterial({map:hayT});
+ const bale=(x,y,z,ax,hh)=>{const g=new THREE.CylinderGeometry(.62,.62,1.25,18);if(ax=='x')g.rotateZ(Math.PI/2);else g.rotateX(Math.PI/2);
+  const m=new THREE.Mesh(g,hayM);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);solids.push(m);shootables.push(m);
+  const ex=ax=='x'?.63:.62,ez=ax=='x'?.62:.63;boxes.push({x0:x-ex,x1:x+ex,z0:z-ez,z1:z+ez,h:hh,col:'#c9a23a'})};
+ bale(-36.6,.62,-23.4,'x',1.24);bale(-35.1,.62,-23.4,'x',1.24);bale(-35.85,1.64,-23.4,'x',2.26);
+ bale(-25.4,.62,-35.6,'z',1.24)}
 
 // ---- ESTÁBULO: madeira escura, telhado com varanda coberta, baias com cavalos, lampiões, cerca e barris ----
 {const cx=-34,cz=13,L=15.2;
@@ -803,7 +856,7 @@ function hitsBox(x,z,y,r){if(botMove)for(const w of wires)if(Math.abs(y-w.y)<.9&
 function ceilingAt(x,z,y){let c=1e9;for(const pl of platforms)if(x>pl.x0&&x<pl.x1&&z>pl.z0&&z<pl.z1&&pl.y>y+.15){const h=(pl.bot!=null&&y+1.7<=pl.bot+.05)?pl.bot:pl.y;if(h<c)c=h}return c}
 function groundAt(x,z,y){let g=0;for(const b of boxes)if(x>b.x0-.3&&x<b.x1+.3&&z>b.z0-.3&&z<b.z1+.3&&b.h<=y+(botStep?.75:.35)&&b.h>g)g=b.h;
  for(const pl of platforms)if(!pl.ceilOnly&&x>pl.x0&&x<pl.x1&&z>pl.z0&&z<pl.z1&&y>=pl.y-.6&&pl.y<=y+.35&&pl.y>g)g=pl.y;
- {const hh=hillAt(x,z);if(hh<=y+(botStep?.75:.35)&&hh>g)g=hh}
+ {const hh=hillAt(x,z);if(hh>g)g=hh}   // o morro é terreno contínuo: sempre conta como chão (antes só contava até +0,35 m e o pulo afundava na encosta)
  return g}
 function coreCross(x0,z0,x1,z1,y){const n=Math.ceil(Math.hypot(x1-x0,z1-z0)/.1);for(let i=1;i<n;i++){const t=i/n;if(hitsBox(x0+(x1-x0)*t,z0+(z1-z0)*t,y,.03))return true}return false}   // o caminho de saída atravessa a parede de verdade?
 function move(p,dx,dz,y){let bl=false;
@@ -1633,7 +1686,7 @@ const WIRE_STACK=3;
 const inStairs=(x,z)=>x>-3.95&&x<-2.65&&z>-1.75&&z<1.75;
 function wireFloor(x,z){   // altura do piso no ponto (térreo, degrau da escada ou laje do 2º andar); null = sem chão alcançável
  if(inStairs(x,z)){let g=0;for(const b of boxes)if(b.h>g&&b.h<=3.3&&x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1)g=b.h;return g}
- if(P.y<1.6)return 0;
+ {const th=hillAt(x,z);if(P.y-hillAt(P.x,P.z)<1.6)return th}   // no térreo ou no morro: o piso é o terreno
  let g=null;for(const pl of platforms){if(pl.ceilOnly)continue;if(x>pl.x0&&x<pl.x1&&z>pl.z0&&z<pl.z1&&pl.y<=P.y+.35&&pl.y>P.y-1.2&&(g==null||pl.y>g))g=pl.y}
  return g}
 function hamRect(cx,cz,ax,gy,k){const tu=k=='turret',hx=tu?.4:ax?WIRE_L/2:.15,hz=tu?.4:ax?.15:WIRE_L/2;return{cx,cz,ax,gy,x0:cx-hx,x1:cx+hx,z0:cz-hz,z1:cz+hz,st:null}}
@@ -2487,7 +2540,8 @@ function zUp(p,tx,tz){if(!zHole(p.x,p.z,tx,tz))return[tx,tz];
  if(p.x<-2.3)return p.z<0?ne:se;            // está numa das pontas da laje: sai para leste primeiro
  return tz>0?se:ne}
 // retorna [x,z,modo]: 0 = navegação A* no chão, 1 = reto com desvio, 2 = reto sem desvio (escada)
-function zGoal(b,p){const up=p.y>1.6,pu=TG.y>1.6;
+const zUpper=(x,z,y)=>y-hillAt(x,z)>1.6;   // 2º andar = altura ACIMA DO TERRENO (em cima do morro não conta como andar de cima)
+function zGoal(b,p){const up=zUpper(p.x,p.z,p.y),pu=zUpper(TG.x,TG.z,TG.y);
  if(Math.abs(p.x-ZST.bx)<.6&&p.z>-1.9&&p.z<2.5&&(!pu||p.y<3.1))return pu?[ZST.bx,ZST.tz,2]:[ZST.bx,ZST.bz,2];   // já na escada
  if(up===pu){if(!up)return[TG.x,TG.z,0];
   const sz=p.z<3.4?0:1,pz=TG.z<3.4?0:1;
@@ -2867,9 +2921,12 @@ function update(dt){
  P.vx+=((cs*mx+sn*mz)*spd-P.vx)*k;P.vz+=((-sn*mx+cs*mz)*spd-P.vz)*k;
  move(P,P.vx*dt,P.vz*dt,P.y);
  if(keys.Space&&P.ground&&!crouch&&!idle){P.vy=7.6;P.ground=false}
+ const wasG=P.ground;
  P.vy-=22*dt;let ny=P.y+P.vy*dt;
  if(P.vy>0){const ceil=ceilingAt(P.x,P.z,P.y);if(ny+P.eye>ceil){ny=Math.max(P.y,ceil-P.eye);P.vy=0}}
  P.y=ny;const g=groundAt(P.x,P.z,P.y);
+ {const hh=hillAt(P.x,P.z);if(P.y<hh){P.y=hh;if(P.vy<0)P.vy=0}   // encosta subindo mais rápido que o pulo: empurra o jogador para cima da superfície, nunca para dentro
+  else if(wasG&&P.vy<=0&&hh>0&&P.y-hh<.45){P.y=hh;P.vy=0}}   // descendo andando: cola na encosta em vez de ficar "voando"
  if(P.y<=g&&P.vy<=0){P.y=g;P.vy=0;P.ground=true}else if(P.y>g+.05)P.ground=false;
  const moving=Math.hypot(P.vx,P.vz)>.5&&P.ground;if(moving)bobT+=dt*(silent?6:10);
  shotN-=dt;noise=Math.max(shotN>0?45:0,moving&&!silent?(wpn==3?26:20):0);
