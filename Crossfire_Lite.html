@@ -436,7 +436,7 @@ function uvBox(cx,cy,cz,w,h,d,solid,rot){const g=new THREE.BoxGeometry(w,h,d),ps
  const m=new THREE.Mesh(g,brkM);m.position.set(cx,cy,cz);m.castShadow=true;m.receiveShadow=true;scene.add(m);shootables.push(m);
  if(solid){solids.push(m);boxes.push({x0:cx-w/2,x1:cx+w/2,z0:cz-d/2,z1:cz+d/2,h:cy+h/2,col:'#9a4a32'})}return m}
 uvBox(-4.8,1.6,-6.8,.4,3.2,5.6,true);deco(-4.8,3.26,-6.8,.6,.12,5.8,hdrM,1);
-[[-9.6,-10.35,2.5],[-10.35,-11,1.7],[-11,-11.5,.95],[-11.5,-12,.4]].forEach(q=>uvBox(-4.8,q[2]/2,(q[0]+q[1])/2,.4,q[2],q[1]-q[0],true));
+[[-10.35,-9.6,2.5],[-11,-10.35,1.7],[-11.5,-11,.95],[-12,-11.5,.4]].forEach(q=>uvBox(-4.8,q[2]/2,(q[0]+q[1])/2,.4,q[2],q[1]-q[0],true));   // intervalos em ordem crescente: antes a profundidade ficava NEGATIVA (malha do avesso + colisão invertida = dava para atravessar)
 {let sd=7;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;
  for(let i=0;i<14;i++){const w=.18+rn()*.3,h=.1+rn()*.2,d=.15+rn()*.25,z=-10.6-rn()*3.2,x=-4.8+(rn()-.5)*1.9;
   const o=uvBox(x,h/2,z,w,h,d,false,true);o.rotation.y=rn()*3.14;if(i%3==0)o.rotation.z=(rn()-.5)*.6}}
