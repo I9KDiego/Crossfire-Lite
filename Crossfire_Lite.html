@@ -330,7 +330,7 @@ const hemi=new THREE.HemisphereLight(0xdcebff,0x8a7350,.62);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff0cc,1.02);sun.position.set(35,55,22);sun.target.position.set(0,0,0);scene.add(sun);scene.add(sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 sun.shadow.camera.left=-56;sun.shadow.camera.right=56;sun.shadow.camera.top=56;sun.shadow.camera.bottom=-56;
-sun.shadow.camera.near=8;sun.shadow.camera.far=150;sun.shadow.bias=-.0018;
+sun.shadow.camera.near=8;sun.shadow.camera.far=150;sun.shadow.bias=-.0018;sun.shadow.normalBias=.04;
 const fillL=new THREE.DirectionalLight(0xbcd4ff,.25);fillL.position.set(-25,18,-28);scene.add(fillL);
 // lanterna do jogador (só acende à noite)
 const torch=new THREE.SpotLight(0xfff2d6,0,48,.52,.55,1.4);torch.position.set(.15,-.1,0);torch.target.position.set(0,0,-10);cam.add(torch);cam.add(torch.target);torch.visible=false;
@@ -381,8 +381,11 @@ function hwallDCol(ax,f,a,b,ops){let p=a;
  const put=(u,v)=>{if(v-u>.01){if(ax=='x')uwall((u+v)/2,f,v-u,.5);else uwall(f,(u+v)/2,.5,v-u)}};
  for(const o of ops){put(p,o[0]);if(o[2]!='d')put(o[0],o[1]);p=o[1]}
  put(p,b)}
-function box(x,z,w,d,h,k){if(!hillBuild&&h<5&&inHill(x-w/2,x+w/2,z-d/2,z+d/2,.3))return;k=k||(h>3?'wall':'wood');const t=TX[k][0].clone();t.needsUpdate=true;const rp=k=='house'?.8:4;t.repeat.set(Math.max(w,d)/rp,h/rp);   // tijolo: 1 repetição a cada 0,8 m
- const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:t}));m.position.set(x,h/2,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
+const boxMatC={};function boxMat(k){return boxMatC[k]||(boxMatC[k]=new THREE.MeshLambertMaterial({map:TX[k][0]}))}
+// UV em escala de mundo: cada face (frente, lateral fina, topo) recebe a textura sem esticar, e paredes coladas/sobrepostas emendam igual (sem piscar)
+function worldUV(g,cx,cy,cz,K){const ps=g.attributes.position,ns=g.attributes.normal,uv=g.attributes.uv;for(let n=0;n<ps.count;n++){const X=ps.getX(n)+cx,Y=ps.getY(n)+cy,Z=ps.getZ(n)+cz,ax=Math.abs(ns.getX(n)),ay=Math.abs(ns.getY(n));if(ax>.5)uv.setXY(n,Z*K,Y*K);else if(ay>.5)uv.setXY(n,X*K,Z*K);else uv.setXY(n,X*K,Y*K)}uv.needsUpdate=true}
+function box(x,z,w,d,h,k){if(!hillBuild&&h<5&&inHill(x-w/2,x+w/2,z-d/2,z+d/2,.3))return;k=k||(h>3?'wall':'wood');const rp=k=='house'?.8:4;   // tijolo: 1 repetição a cada 0,8 m
+ const bg=new THREE.BoxGeometry(w,h,d);worldUV(bg,x,h/2,z,1/rp);const m=new THREE.Mesh(bg,boxMat(k));m.position.set(x,h/2,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
  solids.push(m);shootables.push(m);boxes.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,h,col:TX[k][1]})}
 [[0,-41.4,88,3,6],[0,41.4,88,3,6],[-41.4,0,3,88,6],[41.4,0,3,88,6],
  [-10,-8,5,1.5,4],[10,8,5,1.5,4],[-18,10,2,2,1.1],[-8.4,12.6,2,2,2.2],[18,-12,2.5,2.5,1.1],
@@ -408,7 +411,7 @@ function pick(x,z,type){const col=type=='hp'?0x33dd55:0xf5c542;const m=new THREE
 const gt=mkTex('#5f9440','#4b7c2f',1).clone();gt.needsUpdate=true;gt.repeat.set(22.5,22.5);
 const grass=new THREE.Mesh(new THREE.CircleGeometry(42,64),new THREE.MeshLambertMaterial({map:gt}));grass.rotation.x=-Math.PI/2;grass.position.y=.012;grass.receiveShadow=true;scene.add(grass);
 const pathT=mkTex('#cdb27c','#b89e68',1);pathT.repeat.set(1,8);
-function mkPath(z,len){const m=new THREE.Mesh(new THREE.PlaneGeometry(2.4,len),new THREE.MeshLambertMaterial({map:pathT}));m.rotation.x=-Math.PI/2;m.position.set(0,.02,z);scene.add(m)}
+function mkPath(z,len){const pt=pathT.clone();pt.needsUpdate=true;pt.repeat.set(1,len/2.4);const m=new THREE.Mesh(new THREE.PlaneGeometry(2.4,len),new THREE.MeshLambertMaterial({map:pt}));m.rotation.x=-Math.PI/2;m.position.set(0,.02,z);scene.add(m)}
 mkPath(16.2,19.2);mkPath(-14.9,21.8);
 const hdrM=new THREE.MeshLambertMaterial({color:0xdccfae}),glassM=new THREE.MeshLambertMaterial({color:0x9fd4ff,transparent:true,opacity:.28}),roofM=new THREE.MeshLambertMaterial({color:0x8b3a2a}),brickM=new THREE.MeshLambertMaterial({map:(()=>{const t=TX.house[0].clone();t.needsUpdate=true;t.repeat.set(1.1,6.5);return t})()});
 const bkCache={};function bkMat(w,h){const k=Math.round(w*10)+'x'+Math.round(h*10);if(!bkCache[k]){const t=TX.house[0].clone();t.needsUpdate=true;t.repeat.set(Math.max(w,.2)/.8,h/.8);bkCache[k]=new THREE.MeshLambertMaterial({map:t})}return bkCache[k]}
@@ -2530,9 +2533,12 @@ function zombieGameOver(){state='dead';playing=false;needNew=true;sfxDeath();if(
 function baseWaypoint(b,pz,px){if(b.side==null)b.side=px>=0?16:-16;if(pz<15)return{x:b.side,z:15};return{x:baseX,z:baseZ}}
 // ---- Zumbis em 3D: sobem/descem a escada interna e só ferem quem está no mesmo andar ----
 const ZST={bx:-3.3,bz:2.9,tz:-2.7};   // base e topo da escada (x central, z da base, z do topo)
-function zFoot(b,p,dt){let fy=b.fy==null?p.y:b.fy;const off=Math.max(0,Math.min(.06,p.y-fy)),g=groundAt(p.x,p.z,fy);   // fy = altura dos pés (a animação só soma o balanço)
- if(g>fy){fy=g;b.vy=0}else if(g<fy-.01){b.vy=(b.vy||0)-22*dt;fy=Math.max(g,fy+b.vy*dt);if(fy<=g)b.vy=0}else b.vy=0;
- b.fy=fy;p.y=fy+off}
+function zFoot(b,p,dt){let fy=b.fy==null?p.y:b.fy;const ex0=b.fex||0,off=Math.max(0,Math.min(.06,p.y-fy-ex0)),g=groundAt(p.x,p.z,fy);   // fy = altura dos pés (a animação só soma o balanço)
+ if(g>fy){fy=g;b.vy=0}else if(g<fy-.01){if(fy-g<=.5&&(b.vy||0)>-1.5){fy=g;b.vy=0}   // degrau/encosta para baixo: cola no chão (antes flutuava, caía e zerava a velocidade a cada frame = tremor)
+  else{b.vy=(b.vy||0)-22*dt;fy=Math.max(g,fy+b.vy*dt);if(fy<=g)b.vy=0}}else b.vy=0;
+ b.fy=fy;{const hh=hillAt(p.x,p.z),ex=hh>0&&fy<=hh+.01?Math.min(.04,hh*2):0;b.fex=ex;p.y=fy+off+ex}}
+// depois de mover: reajusta os pés ao terreno da NOVA posição (zFoot roda antes do passo, então na subida o zumbi ficava 1 frame abaixo da encosta)
+function zFootPost(b,p){if(b.fy==null)return;const hh=hillAt(p.x,p.z);if(hh<=0)return;if(Math.abs(b.fy-hh)<.6){const ex=Math.min(.04,hh*2),d=hh-b.fy;b.fy=hh;b.vy=0;p.y+=d+(ex-(b.fex||0));b.fex=ex}}
 // 2º andar: o vão da escada (x -4..-2.5, z -1.85..1.85) não tem piso. Contorna pelo lado leste do vão (sem cair).
 function zHole(x0,z0,x1,z1){for(let i=0;i<=16;i++){const t=i/16,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t;if(x>-4.15&&x<-2.35&&z>-2.05&&z<2.05)return true}return false}
 function zUp(p,tx,tz){if(!zHole(p.x,p.z,tx,tz))return[tx,tz];
@@ -2580,7 +2586,7 @@ function zombieAI(b,p,dt){b.gT=(b.gT==null?arnd(1,5):b.gT)-dt;if(b.gT<=0){b.gT=a
  const dxB=baseX-p.x,dzB=baseZ-p.z,dB=Math.hypot(dxB,dzB)||1;
  b.atkCd-=dt;b.see=dP<26;zFoot(b,p,dt);const dY=Math.abs(TG.y-p.y);if(b.type=='bomba'&&bombaThink(b,p,dt,dP,dY))return;if(wires.length&&wireContact(b,p,dt))return;
  if(b.type=='anomalia'&&dP<9&&dY<1.5){
-  b.los-=dt;if(b.los<=0){b.los=.3;const o=new THREE.Vector3(p.x,1.5,p.z),t=new THREE.Vector3(TG.x,TG.y+TG.eye-.3,TG.z);b.canSee=los1(b,dP,t.sub(o).normalize(),o)}
+  b.los-=dt;if(b.los<=0){b.los=.3;const o=new THREE.Vector3(p.x,p.y+1.5,p.z),t=new THREE.Vector3(TG.x,TG.y+TG.eye-.3,TG.z);b.canSee=los1(b,dP,t.sub(o).normalize(),o)}
   if(b.canSee){faceUpper(b,Math.atan2(dxP,dzP),dt);
    if(dP>6){faceLower(b,Math.atan2(dxP,dzP),dt);steer(b,dxP/dP,dzP/dP,b.speed,dt);animWalk(b,dt,b.speed)}
    else if(dP<3.5){faceLower(b,Math.atan2(-dxP,-dzP),dt);steer(b,-dxP/dP*.5,-dzP/dP*.5,b.speed,dt);animWalk(b,dt,b.speed*.5)}
@@ -2826,9 +2832,15 @@ function steer(b,vx,vz,sp,dt){
  b.hx=sx;b.hz=sz;
  const[ax,az]=avoidDir(b,p.x,p.z,sx,sz,dt);
  move(p,ax*dt,az*dt,p.y>0?p.y:0);
- if(mode!='zombie'){const hh=hillAt(p.x,p.z);if(hh>0||b.onHill){p.y=hh;b.onHill=hh>0}}
+ if(mode!='zombie'){const hh=hillAt(p.x,p.z),fyv=hh>0?hh+Math.min(.04,hh*2):0;if(hh>0||b.onHill){p.y=fyv;b.onHill=hh>0}b.fy=fyv}   // b.fy = altura dos pés: animWalk suaviza em torno dela (antes ficava 0 e puxava o bot para dentro do morro)
  b.spd=sl}
 
+// corpo caído: deita para -z a partir dos pés. No morro, inclina junto com a encosta e sobe o suficiente para não atravessar o terreno
+function corpsePose(x,z,y0,t){const base=Math.max(-1.5,-t*4),h0=hillAt(x,z);if(y0-h0>.6)return[base,0];
+ let any=h0>.01;for(let s=.4;s<=1.8&&!any;s+=.4)if(hillAt(x,z-s)>.01)any=true;if(!any)return[base,0];
+ const k=Math.min(1,t/.375),g=(hillAt(x,z-1.4)-h0)/1.4,a=base+Math.atan(g)*k,sa=Math.sin(a),ca=Math.cos(a);
+ let lift=0;for(let u=0;u<=1.8;u+=.2){const need=hillAt(x,z+u*sa)-(y0+u*ca)+.06;if(need>lift)lift=need}
+ return[a,lift*k]}
 // ---- Tiro dos bots: projétil de verdade (dispersão angular + colisão com jogador, paredes, chão e lajes) ----
 const UPV=new THREE.Vector3(0,1,0),DNV=new THREE.Vector3(0,-1,0);
 function gauss(){return(Math.random()+Math.random()+Math.random()-1.5)*2}
@@ -2851,15 +2863,15 @@ function bulletTrace(o,dir,maxD){
  if(tp!=null&&tp<tW)return{t:tp,player:true};
  return{t:tW,player:false,n:tW<maxD?n:null,o:hitO}}
 function botSees(p){
- const o=new THREE.Vector3(p.x,1.6,p.z);
+ const o=new THREE.Vector3(p.x,p.y+1.6,p.z);
  for(const ty of [P.eye-.5,P.eye-.05]){
   const v=new THREE.Vector3(P.x,P.y+ty,P.z).sub(o),dist=v.length();v.normalize();
   if(los1(null,dist,v,o)&&slabT(o,v,dist)==null)return true}
  return false}
 function botFire(b,kd,acc){
  const p=b.g.position,yaw=b.g.upper.rotation.y,gd=BGUN[b.kind]||BGUN.rifle;
- const o=new THREE.Vector3(p.x+Math.sin(yaw)*gd.mz-Math.cos(yaw)*.07,1.38,p.z+Math.cos(yaw)*gd.mz+Math.sin(yaw)*.07);   // boca do cano
- const c0=new THREE.Vector3(p.x,1.35,p.z),cd0=o.clone().sub(c0),cl0=cd0.length();cd0.normalize();
+ const o=new THREE.Vector3(p.x+Math.sin(yaw)*gd.mz-Math.cos(yaw)*.07,p.y+1.38,p.z+Math.cos(yaw)*gd.mz+Math.sin(yaw)*.07);   // boca do cano
+ const c0=new THREE.Vector3(p.x,p.y+1.35,p.z),cd0=o.clone().sub(c0),cl0=cd0.length();cd0.normalize();
  if(!los1(b,cl0,cd0,c0)){b.cd=.15;return}   // cano encostado na parede: não atira através dela
  const lag=kd.lag||.06;
  const dir0=new THREE.Vector3(P.x-P.vx*lag,P.y+Math.max(.55,P.eye-.5),P.z-P.vz*lag).sub(o);
@@ -2988,8 +3000,8 @@ function update(dt){
    if(medT<=0){medT=0;medkits=Math.max(0,medkits-1);P.hp=Math.min(100,P.hp+MEDHP);$('medbar').style.display='none';feed('✚ Kit médico usado · +'+MEDHP+' de vida');sfxPickup()}}}
  const acc=mode=='snd'?Math.min(.9,.5+round*.05):Math.min(.85,.42+round*.04);
  for(let i=bots.length-1;i>=0;i--){const b=bots[i],p=b.g.position;
-  if(b.dead){b.t+=dt;if(b.type=='cao')dogDie(b);else b.g.rotation.x=Math.max(-1.5,-b.t*4);if(b.type&&b.t>1.5)b.g.position.y=-(b.t-1.5)*.3;if(b.t>3){scene.remove(b.g);bots.splice(i,1)}continue}
-  if(mode=='zombie'){if(b.net){zNetStep(b,dt);continue}zTarget(p,b);botMove=botStep=true;if(b.type=='cao'){dogAI(b,p,dt)}else{zombieAI(b,p,dt);zAnim(b,dt)}botMove=botStep=false;continue}
+  if(b.dead){b.t+=dt;if(b.dy0==null)b.dy0=p.y;let ly=0;if(b.type=='cao')dogDie(b);else{const cp=corpsePose(p.x,p.z,b.dy0,b.t);b.g.rotation.x=cp[0];ly=cp[1]}p.y=b.dy0+ly;if(b.type&&b.t>1.5)p.y-=(b.t-1.5)*.3;if(b.t>3){scene.remove(b.g);bots.splice(i,1)}continue}
+  if(mode=='zombie'){if(b.net){zNetStep(b,dt);continue}zTarget(p,b);botMove=botStep=true;if(b.type=='cao'){dogAI(b,p,dt)}else{zombieAI(b,p,dt);zAnim(b,dt)}zFootPost(b,p);botMove=botStep=false;continue}
   const kd=b.kd||BOTKINDS.rifle;
   const dx=P.x-p.x,dz=P.z-p.z,d=Math.hypot(dx,dz)||1;
   b.bloom=(b.bloom||0)*Math.exp(-dt*3);
@@ -3298,8 +3310,8 @@ function mpApplyS(arr){for(const a of arr){const id=a[0];if(id==MP.id)continue;c
  const alive=a[8]==1;if(alive&&r.dead){r.dead=false;r.dt=0;r.g.rotation.x=0;r.root.position.set(a[1],a[2],a[3])}else if(!alive&&!r.dead){r.dead=true;r.dt=0}}}
 function mpAvatars(dt){for(const r of rem){if(!r.init)continue;const R=r.root,ox=R.position.x,oz=R.position.z,k=Math.min(1,dt*12);
  R.position.x+=(r.tx-ox)*k;R.position.z+=(r.tz-oz)*k;R.position.y+=(r.ty-R.position.y)*Math.min(1,dt*18);r.ping=Math.max(0,r.ping-dt);
- if(r.dead){r.dt+=dt;r.g.rotation.x=Math.max(-1.5,-r.dt*4);r.tag.visible=false;continue}
- r.g.rotation.x=0;r.tag.visible=true;botWield(r.g,WKIND[r.wk]||'pistol');const mvx=R.position.x-ox,mvz=R.position.z-oz,aim=r.yaw+Math.PI;
+ if(r.dead){r.dt+=dt;const cp=corpsePose(R.position.x,R.position.z,R.position.y,r.dt);r.g.rotation.x=cp[0];r.g.position.y=cp[1];r.tag.visible=false;continue}
+ r.g.rotation.x=0;r.g.position.y=0;r.tag.visible=true;botWield(r.g,WKIND[r.wk]||'pistol');const mvx=R.position.x-ox,mvz=R.position.z-oz,aim=r.yaw+Math.PI;
  faceUpper(r,aim,dt);faceLower(r,r.sp>.4?Math.atan2(mvx,mvz):aim,dt);animWalk(r,dt,Math.min(6,r.sp));
  r.g.rig.hp.rotation.x+=-r.pitch*.6;r.g.rig.tp.rotation.x+=-r.pitch*.35}}
 function mpNet(dt){MP.tick+=dt;const now=performance.now();
